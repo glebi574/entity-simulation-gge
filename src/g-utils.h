@@ -30,7 +30,15 @@ public:
 struct Scene {
 public:
   GLuint shader_program;
+  std::vector<std::unique_ptr<VObject>> vertex_objects;
 
+  Scene(std::string path_vs, std::string path_fs);
+
+  VObject* add_vobject(std::vector<float>& positions, std::vector<uint32_t>& colors);
+
+  void remove_vobject(VObject* vo);
+
+  void clear_vobject(VObject* vo);
 };
 
 // Stores glyph data
@@ -54,20 +62,14 @@ public:
 class GWindow {
 public:
   GLFWwindow* window;
-  GLuint shader_program, pm_location;
-  std::string vertex_shader_path;
-  std::string fragment_shader_path;
-  std::vector<std::unique_ptr<VObject>> vertex_objects;
+  GLuint pm_location;
   TMatrix pm;
   FontHandler font_handler;
+  std::vector<std::unique_ptr<Scene>> scenes;
 
   void set_orthographic_projection(float width, float height);
 
-  VObject* add_vobject(std::vector<float>& positions, std::vector<uint32_t>& colors);
-
-  void remove_vobject(VObject* vo);
-
-  void clear_vobject(VObject* vo);
+  Scene* add_scene(std::string path_vs, std::string path_fs);
 
   int init(); // Creates window and defines stuff
 

@@ -20,13 +20,12 @@ static std::chrono::steady_clock::time_point last_second_time = std::chrono::ste
 static std::chrono::steady_clock::time_point last_time = std::chrono::steady_clock::now();
 
 void window_pre_init(GWindow* gw) {
-  // defining shader paths
-  gw->vertex_shader_path = "vertex_shader.glsl";
-  gw->fragment_shader_path = "fragment_shader.glsl";
+  
 }
 
 void window_post_init(GWindow* gw) {
   // test - defining vertexes
+  Scene* sp = gw->add_scene("triangle_vs.glsl", "triangle_fs.glsl");
   for (int i = 0; i < object_amount; ++i) {
     std::vector<float> positions;
     float s = 8;
@@ -47,7 +46,7 @@ void window_post_init(GWindow* gw) {
     uint32_t color = 0xffa000ff;
     for (int i = 0; i < 3; ++i)
       colors.emplace_back(color);
-    scene_things.emplace_back(MObject(gw->add_vobject(positions, colors)));
+    scene_things.emplace_back(MObject(sp->add_vobject(positions, colors)));
     MObject* mo = &scene_things.back();
     mo->pos[0] = irand(-300, 300);
     mo->pos[1] = irand(-300, 300);

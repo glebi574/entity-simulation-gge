@@ -99,7 +99,7 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
   glViewport(0, 0, width, height);
 }
 
-VObject* GWindow::add_vobject(std::vector<float>& positions, std::vector<uint32_t>& colors) {
+VObject* Scene::add_vobject(std::vector<float>& positions, std::vector<uint32_t>& colors) {
   vertex_objects.emplace_back(std::make_unique<VObject>());
   VObject* vo = vertex_objects.back().get();
   vo->gen_vertexes(positions, colors);
@@ -122,6 +122,19 @@ VObject* GWindow::add_vobject(std::vector<float>& positions, std::vector<uint32_
   glVertexAttribPointer(vo->vcol_location, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, color));
 
   return vo;
+}
+
+Scene::Scene(std::string path_vs, std::string path_fs) {
+  shader_program = create_shader_program(path_vs, path_fs);
+}
+
+Scene* GWindow::add_scene(std::string path_vs, std::string path_fs) {
+  scenes.emplace_back(std::make_unique<Scene>(path_vs, path_fs));
+  Scene* sp = scenes.back().get();
+
+  pm_location = glGetUniformLocation(sp->shader_program, "pm"); // Keep pm location constant ig
+
+  return sp;
 }
 
 int FontHandler::init() {
@@ -164,7 +177,7 @@ int FontHandler::init() {
       face->glyph->bitmap.width, face->glyph->bitmap.rows,
       face->glyph->bitmap_left, face->glyph->bitmap_top
     };
-    characters.push_back(ch);
+    characters.emplace_back(ch);
   }
 
   glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
@@ -174,12 +187,12 @@ int FontHandler::init() {
   return 0;
 }
 
-void GWindow::clear_vobject(VObject* vo) {
+void Scene::clear_vobject(VObject* vo) {
   glDeleteVertexArrays(1, &vo->VAO);
   glDeleteBuffers(1, &vo->VBO);
 }
 
-void GWindow::remove_vobject(VObject* vo) {
+void Scene::remove_vobject(VObject* vo) {
   clear_vobject(vo);
   for (int i = 0; i < vertex_objects.size(); ++i)
     if (vertex_objects[i].get() == vo) {
@@ -225,11 +238,8 @@ int GWindow::init() {
   glEnable(GL_BLEND);
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-  if (font_handler.init())
-    return 1;
-
-  shader_program = create_shader_program(vertex_shader_path, fragment_shader_path);
-  pm_location = glGetUniformLocation(shader_program, "pm");
+  //if (font_handler.init())
+  //  return 1;
 
   set_orthographic_projection(800, 600);
 
@@ -243,14 +253,18 @@ void GWindow::window_proc(void (*additional_func)(GWindow*)) {
     glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
     glClear(GL_COLOR_BUFFER_BIT);
 
-    glUseProgram(shader_program);
     glUniformMatrix4fv(pm_location, 1, GL_FALSE, &pm.m[0][0]);
 
-    for (std::unique_ptr<VObject>& uvo : vertex_objects) {
-      VObject* vo = uvo.get();
-      glBindVertexArray(vo->VAO);
-      glUniformMatrix4fv(vo->tm_location, 1, GL_FALSE, &vo->tm.m[0][0]);
-      glDrawArrays(GL_TRIANGLES, 0, vo->vertexes.size());
+    for (std::unique_ptr<Scene>& scene : scenes) {
+      Scene* sp = scene.get();
+      glUseProgram(sp->shader_program);
+
+      for (std::unique_ptr<VObject>& uvo : sp->vertex_objects) {
+        VObject* vo = uvo.get();
+        glBindVertexArray(vo->VAO);
+        glUniformMatrix4fv(vo->tm_location, 1, GL_FALSE, &vo->tm.m[0][0]);
+        glDrawArrays(GL_TRIANGLES, 0, vo->vertexes.size());
+      }
     }
 
     glfwSwapBuffers(window);
@@ -260,9 +274,12 @@ void GWindow::window_proc(void (*additional_func)(GWindow*)) {
 }
 
 void GWindow::clear() {
-  for (std::unique_ptr<VObject>& uvo : vertex_objects)
-    clear_vobject(uvo.get());
-  glDeleteProgram(shader_program);
+  for (std::unique_ptr<Scene>& scene : scenes) {
+    Scene* sp = scene.get();
+    for (std::unique_ptr<VObject>& uvo : sp->vertex_objects)
+      sp->clear_vobject(uvo.get());
+    glDeleteProgram(sp->shader_program);
+  }
 
   glfwDestroyWindow(window);
   glfwTerminate();
