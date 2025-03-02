@@ -4,11 +4,11 @@ uniform mat4 pm;
 uniform mat4 tm;
 
 in vec3 vPos;
-in vec4 vCol;
+in vec2 vTex;
 
-out vec4 color;
+out vec2 tPos;
 
 void main() {
   gl_Position = pm * tm * vec4(vPos, 1.0);
-  color = vCol;
+  tPos = vTex;
 }

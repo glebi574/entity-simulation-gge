@@ -14,7 +14,7 @@ Vertex::Vertex(float pos[3], uint32_t color) {
   set_hex_color(color);
 }
 
-void Vertex::set_hex_color(uint32_t color) {
+void ColorComponent::set_hex_color(uint32_t color) {
   for (int i = 3; i >= 0; --i) {
     this->color[i] = (color & 0xff) / 255.f;
     color >>= 8;
@@ -37,6 +37,12 @@ void TMatrix::set_angle(float rx, float ry, float rz) {
   m[2][0] = -sy;
   m[2][1] = sx * cy;
   m[2][2] = cx * cy;
+}
+
+void TMatrix::set_scale(float s) {
+  m[0][0] *= s;
+  m[1][1] *= s;
+  m[2][2] *= s;
 }
 
 void TMatrix::set_scale(float sx, float sy, float sz) {

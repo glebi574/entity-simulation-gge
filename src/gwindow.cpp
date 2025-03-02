@@ -46,7 +46,7 @@ int GWindow::init() {
 
   bool fullscreen = false;
 
-  int x = 800, y = 600;
+  int x = 600, y = 600;
   if (fullscreen) {
     GLFWmonitor* monitor = glfwGetPrimaryMonitor();
     const GLFWvidmode* mode = glfwGetVideoMode(monitor);
@@ -72,7 +72,18 @@ int GWindow::init() {
   }
 
   new_shader_program(&triangle_sp, "triangle_vs.glsl", "triangle_fs.glsl");
+  new_shader_program(&glyph_sp, "glyph_vs.glsl", "glyph_fs.glsl");
   pm_location = glGetUniformLocation(triangle_sp, "pm");
+
+  tvo_data.tm_location = glGetUniformLocation(triangle_sp, "tm");
+  tvo_data.vpos_location = glGetAttribLocation(triangle_sp, "vPos");
+  tvo_data.vcol_location = glGetAttribLocation(triangle_sp, "vCol");
+
+  gvo_data.tcol_location = glGetUniformLocation(glyph_sp, "tCol");
+
+  gvo_data.tm_location = glGetUniformLocation(glyph_sp, "tm");
+  gvo_data.vpos_location = glGetAttribLocation(glyph_sp, "vPos");
+  gvo_data.vtex_location = glGetAttribLocation(glyph_sp, "vTex");
 
   glEnable(GL_BLEND);
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -85,6 +96,36 @@ int GWindow::init() {
   return 0;
 }
 
+void GWindow::draw_tvo() {
+  glUseProgram(triangle_sp);
+  glUniformMatrix4fv(pm_location, 1, GL_FALSE, &pm.m[0][0]);
+  for (std::unique_ptr<TriangleVO>& uvo : tvo) {
+    TriangleVO* vo = uvo.get();
+    glBindVertexArray(vo->VAO);
+    glUniformMatrix4fv(tvo_data.tm_location, 1, GL_FALSE, &vo->tm.m[0][0]);
+    glDrawArrays(GL_TRIANGLES, 0, vo->vertexes.size());
+  }
+}
+
+void GWindow::draw_gvo() {
+  glUseProgram(glyph_sp);
+  glUniformMatrix4fv(pm_location, 1, GL_FALSE, &pm.m[0][0]);
+  for (std::unique_ptr<TextVO>& uvo : gvo) {
+    TextVO* vo = uvo.get();
+    glUniform4f(gvo_data.tcol_location, vo->color[0], vo->color[1], vo->color[2], vo->color[3]);
+    glActiveTexture(GL_TEXTURE0);
+    glBindVertexArray(vo->VAO);
+    glUniformMatrix4fv(gvo_data.tm_location, 1, GL_FALSE, &vo->tm.m[0][0]);
+    int offset = 0;
+    for (std::string::const_iterator c = vo->str.begin(); c != vo->str.end(); ++c) {
+      Character ch = font_handler.characters[*c];
+      glBindTexture(GL_TEXTURE_2D, ch.texture_id);
+      glDrawArrays(GL_TRIANGLES, offset, 6);
+      offset += 6;
+    }
+  }
+}
+
 void GWindow::window_proc(void (*additional_func)(GWindow*)) {
   while (!glfwWindowShouldClose(window)) {
     additional_func(this);
@@ -92,23 +133,9 @@ void GWindow::window_proc(void (*additional_func)(GWindow*)) {
     glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
     glClear(GL_COLOR_BUFFER_BIT);
 
-    glUniformMatrix4fv(pm_location, 1, GL_FALSE, &pm.m[0][0]);
-
-    glUseProgram(triangle_sp);
-    for (std::unique_ptr<TriangleVO>& uvo : tvo) {
-      TriangleVO* vo = uvo.get();
-      glBindVertexArray(vo->VAO);
-      glUniformMatrix4fv(vo->tm_location, 1, GL_FALSE, &vo->tm.m[0][0]);
-      glDrawArrays(GL_TRIANGLES, 0, vo->vertexes.size());
-    }
-    /*
-    glUseProgram(glyph_sp);
-    for (std::unique_ptr<GlyphVO>& uvo : gvo) {
-      GlyphVO* vo = uvo.get();
-      glBindVertexArray(vo->VAO);
-      glUniformMatrix4fv(vo->tm_location, 1, GL_FALSE, &vo->tm.m[0][0]);
-      // glDrawArrays(GL_TRIANGLES, 0, vo->vertexes.size());
-    }*/
+    draw_tvo();
+    
+    draw_gvo();
 
     glfwSwapBuffers(window);
 
@@ -119,7 +146,7 @@ void GWindow::window_proc(void (*additional_func)(GWindow*)) {
 void GWindow::clear() {
   for (std::unique_ptr<TriangleVO>& uvo : tvo)
     clear_vo(uvo.get());
-  for (std::unique_ptr<GlyphVO>& uvo : gvo)
+  for (std::unique_ptr<TextVO>& uvo : gvo)
     clear_vo(uvo.get());
   glDeleteProgram(triangle_sp);
   glDeleteProgram(glyph_sp);
@@ -137,24 +164,46 @@ TriangleVO* GWindow::add_tvo(std::vector<float>& positions, std::vector<uint32_t
   glBindBuffer(GL_ARRAY_BUFFER, vo->VBO);
   glBufferData(GL_ARRAY_BUFFER, vo->vertexes.size() * sizeof(Vertex), vo->vertexes.data(), GL_STATIC_DRAW);
 
-  vo->tm_location = glGetUniformLocation(triangle_sp, "tm");
-  vo->vpos_location = glGetAttribLocation(triangle_sp, "vPos");
-  vo->vcol_location = glGetAttribLocation(triangle_sp, "vCol");
-
   glGenVertexArrays(1, &vo->VAO);
   glBindVertexArray(vo->VAO);
 
-  glEnableVertexAttribArray(vo->vpos_location);
-  glVertexAttribPointer(vo->vpos_location, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, pos));
+  glEnableVertexAttribArray(tvo_data.vpos_location);
+  glVertexAttribPointer(tvo_data.vpos_location, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, pos));
 
-  glEnableVertexAttribArray(vo->vcol_location);
-  glVertexAttribPointer(vo->vcol_location, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, color));
+  glEnableVertexAttribArray(tvo_data.vcol_location);
+  glVertexAttribPointer(tvo_data.vcol_location, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, color));
 
   return vo;
 }
 
-GlyphVO* GWindow::add_gvo() {
+TextVO* GWindow::add_text(std::string str, float x, float y, float scale, uint32_t color) {
+  gvo.emplace_back(std::make_unique<TextVO>());
+  TextVO* vo = gvo.back().get();
+  uint32_t offset = 0;
+  for (std::string::const_iterator c = str.begin(); c != str.end(); ++c) {
+    Character ch = font_handler.characters[*c];
+    vo->gen_vertexes(ch, offset);
+    offset += ch.advance >> 6;
+  }
+  vo->str = str;
+  vo->set_hex_color(color);
+  vo->tm.set_scale(scale);
+  vo->tm.set_offset(x, y, 0);
 
+  glGenBuffers(1, &vo->VBO);
+  glBindBuffer(GL_ARRAY_BUFFER, vo->VBO);
+  glBufferData(GL_ARRAY_BUFFER, vo->vertexes.size() * sizeof(Glyph), vo->vertexes.data(), GL_STATIC_DRAW);
+
+  glGenVertexArrays(1, &vo->VAO);
+  glBindVertexArray(vo->VAO);
+
+  glEnableVertexAttribArray(gvo_data.vpos_location);
+  glVertexAttribPointer(gvo_data.vpos_location, 3, GL_FLOAT, GL_FALSE, sizeof(Glyph), (void*)offsetof(Glyph, pos));
+
+  glEnableVertexAttribArray(gvo_data.vtex_location);
+  glVertexAttribPointer(gvo_data.vtex_location, 2, GL_FLOAT, GL_FALSE, sizeof(Glyph), (void*)offsetof(Glyph, quad));
+
+  return vo;
 }
 
 void GWindow::clear_vo(VObject* vo) {

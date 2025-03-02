@@ -12,6 +12,8 @@ public:
     pos[3] = { 0, 0, 0 };
   float acceleration = 0, dx = 0, dy = 0;
 
+  MObject();
+
   MObject(VObject* vo);
 
   void update_vo();

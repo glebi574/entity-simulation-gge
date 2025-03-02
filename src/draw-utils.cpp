@@ -3,6 +3,8 @@
 int object_amount = 100;
 static std::vector<MObject> scene_things;
 
+MObject::MObject() { }
+
 MObject::MObject(VObject* vo) {
   this->vo = vo;
 }
@@ -50,6 +52,8 @@ void window_post_init(GWindow* gw) {
 
     mo->update_vo();
   }
+
+  gw->add_text("String or something, idk", 0, 0, 1, 0xffffffff);
 }
 
 void update(GWindow* gw) {

@@ -12,14 +12,20 @@ int irand(int l, int h);
 
 float frand(float l, float h);
 
-struct Vertex {
+class ColorComponent {
 public:
-  float pos[3] = {};
   float color[4] = {};
 
-  Vertex(float pos[3], uint32_t color); // Defines a vertex with provided position and hex color
+  // Sets a float [4] color from hex color
+  void set_hex_color(uint32_t color);
+};
 
-  void set_hex_color(uint32_t color); // Sets a color of the vertex with provided hex color
+class Vertex : public ColorComponent {
+public:
+  float pos[3] = {};
+
+  // Defines a vertex with coordinate and hex color
+  Vertex(float pos[3], uint32_t color);
 };
 
 struct TMatrix {
@@ -32,6 +38,8 @@ public:
   };
 
   void set_angle(float rx, float ry, float rz);
+
+  void set_scale(float s);
 
   void set_scale(float sx, float sy, float sz);
 
