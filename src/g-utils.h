@@ -16,29 +16,25 @@
 
 uint32_t rgba_to_color(uint8_t r, uint8_t g, uint8_t b, uint8_t a);
 
-// Vertex Object - stores VAO, VBO and other stuff for each set of vertexes
-struct VObject {
+
+class VObject {
 public:
   GLuint VAO, VBO;
-  GLint vpos_location, vcol_location, tm_location;
+  GLint tm_location;
   TMatrix tm;
+};
+
+class TriangleVO : public VObject {
+public:
+  GLint vpos_location, vcol_location;
   std::vector<Vertex> vertexes;
 
   void gen_vertexes(std::vector<float>& positions, std::vector<uint32_t>& colors); // Adds vertexes, based on provided coordinate and color tables
 };
 
-struct Scene {
+class GlyphVO : public VObject {
 public:
-  GLuint shader_program;
-  std::vector<std::unique_ptr<VObject>> vertex_objects;
-
-  Scene(std::string path_vs, std::string path_fs);
-
-  VObject* add_vobject(std::vector<float>& positions, std::vector<uint32_t>& colors);
-
-  void remove_vobject(VObject* vo);
-
-  void clear_vobject(VObject* vo);
+  GLint vpos_location;
 };
 
 // Stores glyph data
@@ -62,18 +58,27 @@ public:
 class GWindow {
 public:
   GLFWwindow* window;
-  GLuint pm_location;
+  GLuint pm_location, triangle_sp, glyph_sp;
   TMatrix pm;
   FontHandler font_handler;
-  std::vector<std::unique_ptr<Scene>> scenes;
+  std::vector<std::unique_ptr<TriangleVO>> tvo;
+  std::vector<std::unique_ptr<GlyphVO>> gvo;
 
   void set_orthographic_projection(float width, float height);
 
-  Scene* add_scene(std::string path_vs, std::string path_fs);
+  void new_shader_program(GLuint* sp, std::string path_vs, std::string path_fs);
 
   int init(); // Creates window and defines stuff
 
   void window_proc(void (*additional_func)(GWindow*)); // Main loop of the program
+
+  TriangleVO* add_tvo(std::vector<float>& positions, std::vector<uint32_t>& colors);
+
+  GlyphVO* add_gvo();
+
+  void clear_vo(VObject* vo);
+
+  void remove_vo(VObject* vo);
 
   void clear(); // Free memory
 

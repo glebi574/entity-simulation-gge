@@ -24,29 +24,23 @@ void window_pre_init(GWindow* gw) {
 }
 
 void window_post_init(GWindow* gw) {
-  // test - defining vertexes
-  Scene* sp = gw->add_scene("triangle_vs.glsl", "triangle_fs.glsl");
+  std::vector<float> positions;
+  std::vector<uint32_t> colors;
+
+  float s = 8;
+
+  for (int i = 0; i < 3; ++i) {
+    float a = TAU / 3 * i;
+    positions.emplace_back(cos(a) * s);
+    positions.emplace_back(sin(a) * s);
+    positions.emplace_back(0);
+  }
+
+  for (int i = 0; i < 3; ++i)
+    colors.emplace_back(0xffa000ff);
+
   for (int i = 0; i < object_amount; ++i) {
-    std::vector<float> positions;
-    float s = 8;
-    float h = s / 2 * sqrt(3);
-    positions.emplace_back(h / 2);
-    positions.emplace_back(0);
-    positions.emplace_back(0);
-
-    positions.emplace_back(-h / 2);
-    positions.emplace_back(-s / 2);
-    positions.emplace_back(0);
-
-    positions.emplace_back(-h / 2);
-    positions.emplace_back(s / 2);
-    positions.emplace_back(0);
-
-    std::vector<uint32_t> colors;
-    uint32_t color = 0xffa000ff;
-    for (int i = 0; i < 3; ++i)
-      colors.emplace_back(color);
-    scene_things.emplace_back(MObject(sp->add_vobject(positions, colors)));
+    scene_things.emplace_back(MObject(gw->add_tvo(positions, colors)));
     MObject* mo = &scene_things.back();
     mo->pos[0] = irand(-300, 300);
     mo->pos[1] = irand(-300, 300);
@@ -58,16 +52,7 @@ void window_post_init(GWindow* gw) {
   }
 }
 
-void additional_draw_function(GWindow* gw) {
-  std::chrono::steady_clock::time_point current_time = std::chrono::steady_clock::now();
-  if (std::chrono::duration_cast<std::chrono::seconds>(current_time - last_second_time).count() >= 1) {
-    std::cout << "Frames: " << frame_counter << '\n';
-    frame_counter = 0;
-    last_second_time = current_time;
-  }
-  else
-    ++frame_counter;
-
+void update(GWindow* gw) {
   for (MObject& mo : scene_things) {
     float force = sqrt(mo.pos[0] * mo.pos[0] + mo.pos[1] * mo.pos[1]) / 1000000;
     float angle = atan2(-mo.pos[1], -mo.pos[0]);
@@ -83,6 +68,19 @@ void additional_draw_function(GWindow* gw) {
 
     mo.update_vo();
   }
+}
+
+void additional_draw_function(GWindow* gw) {
+  std::chrono::steady_clock::time_point current_time = std::chrono::steady_clock::now();
+  if (std::chrono::duration_cast<std::chrono::seconds>(current_time - last_second_time).count() >= 1) {
+    std::cout << "Frames: " << frame_counter << '\n';
+    frame_counter = 0;
+    last_second_time = current_time;
+  }
+  else
+    ++frame_counter;
+  
+  update(gw);
 
   if (!limit_framerate)
     return;
