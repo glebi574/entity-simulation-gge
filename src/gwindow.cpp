@@ -145,9 +145,9 @@ void GWindow::window_proc(void (*additional_func)(GWindow*)) {
 
 void GWindow::clear() {
   for (std::unique_ptr<TriangleVO>& uvo : tvo)
-    clear_vo(uvo.get());
+    uvo->clear();
   for (std::unique_ptr<TextVO>& uvo : gvo)
-    clear_vo(uvo.get());
+    uvo->clear();
   glDeleteProgram(triangle_sp);
   glDeleteProgram(glyph_sp);
 
@@ -206,13 +206,8 @@ TextVO* GWindow::add_text(std::string str, float x, float y, float scale, uint32
   return vo;
 }
 
-void GWindow::clear_vo(VObject* vo) {
-  glDeleteVertexArrays(1, &vo->VAO);
-  glDeleteBuffers(1, &vo->VBO);
-}
-
 void GWindow::remove_vo(VObject* vo) {
-  clear_vo(vo);
+  vo->clear();
   for (int i = 0; i < tvo.size(); ++i)
     if (tvo[i].get() == vo) {
       tvo.erase(tvo.begin() + i);

@@ -1,18 +1,29 @@
 #include "draw-utils.h"
 
 int object_amount = 100;
-static std::vector<MObject> scene_things;
+static std::vector<ManagedObject> scene_things;
 
-MObject::MObject() { }
+ManagedObject::ManagedObject() { }
 
-MObject::MObject(VObject* vo) {
+ManagedObject::ManagedObject(VObject* vo) {
   this->vo = vo;
 }
 
-void MObject::update_vo() {
+void ManagedObject::update_vo() {
   vo->tm.set_angle(angle[0], angle[1], angle[2]);
   vo->tm.set_scale(scale[0], scale[1], scale[2]);
   vo->tm.set_offset(pos[0], pos[1], pos[2]);
+}
+
+void remove_mo(GWindow* gw, VObject* vo) {
+  for (auto c = scene_things.begin(); c != scene_things.end(); ++c) {
+    ManagedObject mo = *c;
+    if (mo.vo == vo) {
+      gw->remove_vo(vo);
+      scene_things.erase(c);
+      return;
+    }
+  }
 }
 
 static bool limit_framerate = true;
@@ -41,36 +52,14 @@ void window_post_init(GWindow* gw) {
   for (int i = 0; i < 3; ++i)
     colors.emplace_back(0xffa000ff);
 
-  for (int i = 0; i < object_amount; ++i) {
-    scene_things.emplace_back(MObject(gw->add_tvo(positions, colors)));
-    MObject* mo = &scene_things.back();
-    mo->pos[0] = irand(-300, 300);
-    mo->pos[1] = irand(-300, 300);
-
-    mo->dx = frand(-1, 1);
-    mo->dy = frand(-1, 1);
-
-    mo->update_vo();
-  }
+  scene_things.emplace_back(ManagedObject(gw->add_tvo(positions, colors)));
 
   gw->add_text("String or something, idk", 0, 0, 1, 0xffffffff);
 }
 
 void update(GWindow* gw) {
-  for (MObject& mo : scene_things) {
-    float force = sqrt(mo.pos[0] * mo.pos[0] + mo.pos[1] * mo.pos[1]) / 1000000;
-    float angle = atan2(-mo.pos[1], -mo.pos[0]);
-    mo.dx += cos(angle) * force + frand(-0.1, 0.1);
-    mo.dy += sin(angle) * force + frand(-0.1, 0.1);
-    mo.pos[0] += mo.dx;
-    mo.pos[1] += mo.dy;
-    if (mo.pos[0] < -1000 || mo.pos[0] > 1000)
-      mo.dx *= -1;
-    if (mo.pos[1] < -1000 || mo.pos[1] > 1000)
-      mo.dy *= -1;
-    mo.angle[2] = atan2(-mo.dy, mo.dx);
-
-    mo.update_vo();
+  for (ManagedObject& mo : scene_things) {
+    
   }
 }
 

@@ -36,6 +36,8 @@ class VObject {
 public:
   GLuint VAO, VBO;
   TMatrix tm;
+
+  void clear();
 };
 
 // Contains data to draw triangles
@@ -109,8 +111,6 @@ public:
   void draw_tvo();
 
   void draw_gvo();
-
-  void clear_vo(VObject* vo);
 
   void remove_vo(VObject* vo);
 
