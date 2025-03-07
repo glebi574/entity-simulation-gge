@@ -1,39 +1,17 @@
 #include "draw-utils.h"
 
-int object_amount = 100;
-static std::vector<ManagedObject> scene_things;
-
-ManagedObject::ManagedObject() { }
-
-ManagedObject::ManagedObject(VObject* vo) {
-  this->vo = vo;
-}
-
-void ManagedObject::update_vo() {
-  vo->tm.set_angle(angle[0], angle[1], angle[2]);
-  vo->tm.set_scale(scale[0], scale[1], scale[2]);
-  vo->tm.set_offset(pos[0], pos[1], pos[2]);
-}
-
-void remove_mo(GWindow* gw, VObject* vo) {
-  for (auto c = scene_things.begin(); c != scene_things.end(); ++c) {
-    ManagedObject mo = *c;
-    if (mo.vo == vo) {
-      gw->remove_vo(vo);
-      scene_things.erase(c);
-      return;
-    }
-  }
-}
-
 static bool limit_framerate = true;
-static int frame_counter = 0, frame_limit = 112;
+static int frame_counter = 0;
+// 112 = 64; Tested on different systems, with different precision of time and clocks and by different software. Why?
+static int frame_limit = 112;
 static std::chrono::milliseconds frame_duration(1000 / frame_limit);
 static std::chrono::steady_clock::time_point last_second_time = std::chrono::steady_clock::now();
 static std::chrono::steady_clock::time_point last_time = std::chrono::steady_clock::now();
 
+SceneManager scene;
+
 void window_pre_init(GWindow* gw) {
-  
+  scene = SceneManager(gw);
 }
 
 void window_post_init(GWindow* gw) {
@@ -52,18 +30,14 @@ void window_post_init(GWindow* gw) {
   for (int i = 0; i < 3; ++i)
     colors.emplace_back(0xffa000ff);
 
-  scene_things.emplace_back(ManagedObject(gw->add_tvo(positions, colors)));
+  VObject* vo = gw->add_tvo(positions, colors);
+
+  scene.add(vo);
 
   gw->add_text("String or something, idk", 0, 0, 1, 0xffffffff);
 }
 
-void update(GWindow* gw) {
-  for (ManagedObject& mo : scene_things) {
-    
-  }
-}
-
-void additional_draw_function(GWindow* gw) {
+void window_update(GWindow* gw, void (*update_function)(GWindow*)) {
   std::chrono::steady_clock::time_point current_time = std::chrono::steady_clock::now();
   if (std::chrono::duration_cast<std::chrono::seconds>(current_time - last_second_time).count() >= 1) {
     std::cout << "Frames: " << frame_counter << '\n';
@@ -73,7 +47,7 @@ void additional_draw_function(GWindow* gw) {
   else
     ++frame_counter;
   
-  update(gw);
+  update_function(gw);
 
   if (!limit_framerate)
     return;

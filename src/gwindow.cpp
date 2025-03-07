@@ -126,9 +126,9 @@ void GWindow::draw_gvo() {
   }
 }
 
-void GWindow::window_proc(void (*additional_func)(GWindow*)) {
+void GWindow::window_proc(void (*additional_func)(GWindow*, void (*update_function)(GWindow*)), void (*update_function)(GWindow*)) {
   while (!glfwWindowShouldClose(window)) {
-    additional_func(this);
+    additional_func(this, update_function);
 
     glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
     glClear(GL_COLOR_BUFFER_BIT);

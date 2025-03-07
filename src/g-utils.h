@@ -100,9 +100,11 @@ public:
 
   void new_shader_program(GLuint* sp, std::string path_vs, std::string path_fs);
 
-  int init(); // Creates window and defines stuff
+  // Creates window and defines stuff
+  int init();
 
-  void window_proc(void (*additional_func)(GWindow*)); // Main loop of the program
+  // Main loop of the program
+  void window_proc(void (*additional_func)(GWindow*, void (*update_function)(GWindow*)), void (*update_function)(GWindow*));
 
   TriangleVO* add_tvo(std::vector<float>& positions, std::vector<uint32_t>& colors);
 
@@ -114,7 +116,8 @@ public:
 
   void remove_vo(VObject* vo);
 
-  void clear(); // Free memory
+  // Free memory
+  void clear();
 
   friend struct VObject;
 };

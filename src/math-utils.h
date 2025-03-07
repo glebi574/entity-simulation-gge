@@ -6,6 +6,7 @@
 
 #include <iostream>
 #include <vector>
+#include <unordered_map>
 #include <random>
 
 int irand(int l, int h);
