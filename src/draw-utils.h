@@ -16,12 +16,37 @@ public:
   void update_vo();
 };
 
+class MeshConstructor {
+public:
+  std::vector<float> pos;
+  std::vector<uint32_t> colors;
+
+  static std::vector<std::vector<float>> base_triangle, base_square;
+
+  MeshConstructor();
+
+  void set_base_meshes();
+
+  // Adds right triangle at position with size(scale)
+  void add_triangle(float x, float y, float scale, uint32_t color);
+
+  // Adds triangle. pos = {x1, y1, x2, y2, x3, y3}
+  void add_triangle(const std::vector<float>& pos, uint32_t color);
+
+  // Adds square at position with size(scale)
+  void add_square(float x, float y, float scale, uint32_t color);
+
+  // Adds rectangle. pos = {x1, y1, x2, y2}
+  void add_rectangle(const std::vector<float>& pos, uint32_t color);
+
+  // Adds rectangle. pos = {x1, y1, x2, y2, x3, y3, x4, y4}
+  void add_poly4(const std::vector<float>& pos, uint32_t color);
+};
+
 class SceneManager {
 public:
   std::unordered_map<VObject*, ManagedObject> meshes;
   GWindow* gw = nullptr;
-
-  static std::vector<std::vector<float>> base_triangle, base_square;
 
   SceneManager();
 
@@ -29,22 +54,15 @@ public:
 
   void add(VObject* vo);
 
+  VObject* add(MeshConstructor& mc);
+
   void remove(VObject* vo);
-
-  void set_base_meshes();
-
-  VObject* new_triangle(float x, float y, float scale, uint32_t color);
-
-  VObject* new_square(float x, float y, float scale, uint32_t color);
 };
 
-// Called before init() of GWindow
-void window_pre_init(GWindow* gw);
+// Counts frames and updates related data, depends on frame_limiter()
+void frame_time_update();
 
-// Called after init() of GWindow
-void window_post_init(GWindow* gw);
-
-// Called before drawing cycle
-void window_update(GWindow* gw, void (*update_function)(GWindow*));
+// Limits amount of frames per second, depends on frame_time_update()
+void frame_limiter();
 
 #endif

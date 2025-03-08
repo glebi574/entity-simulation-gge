@@ -126,21 +126,17 @@ void GWindow::draw_gvo() {
   }
 }
 
-void GWindow::window_proc(void (*additional_func)(GWindow*, void (*update_function)(GWindow*)), void (*update_function)(GWindow*)) {
-  while (!glfwWindowShouldClose(window)) {
-    additional_func(this, update_function);
+void GWindow::window_proc() {
+  glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+  glClear(GL_COLOR_BUFFER_BIT);
 
-    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-    glClear(GL_COLOR_BUFFER_BIT);
+  draw_tvo();
 
-    draw_tvo();
-    
-    draw_gvo();
+  draw_gvo();
 
-    glfwSwapBuffers(window);
+  glfwSwapBuffers(window);
 
-    glfwPollEvents();
-  }
+  glfwPollEvents();
 }
 
 void GWindow::clear() {

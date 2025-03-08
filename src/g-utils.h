@@ -104,7 +104,7 @@ public:
   int init();
 
   // Main loop of the program
-  void window_proc(void (*additional_func)(GWindow*, void (*update_function)(GWindow*)), void (*update_function)(GWindow*));
+  void window_proc();
 
   TriangleVO* add_tvo(std::vector<float>& positions, std::vector<uint32_t>& colors);
 
