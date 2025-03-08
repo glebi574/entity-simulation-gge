@@ -15,26 +15,8 @@ void window_pre_init(GWindow* gw) {
 }
 
 void window_post_init(GWindow* gw) {
-  std::vector<float> positions;
-  std::vector<uint32_t> colors;
-
-  float s = 8;
-
-  for (int i = 0; i < 3; ++i) {
-    float a = TAU / 3 * i;
-    positions.emplace_back(cos(a) * s);
-    positions.emplace_back(sin(a) * s);
-    positions.emplace_back(0);
-  }
-
-  for (int i = 0; i < 3; ++i)
-    colors.emplace_back(0xffa000ff);
-
-  VObject* vo = gw->add_tvo(positions, colors);
-
-  scene.add(vo);
-
-  gw->add_text("String or something, idk", 0, 0, 1, 0xffffffff);
+  for (int i = 0; i < 1000; ++i)
+    scene.new_square(irand(-500, 500), irand(-500, 500), 32, 0xffa000ff);
 }
 
 void window_update(GWindow* gw, void (*update_function)(GWindow*)) {

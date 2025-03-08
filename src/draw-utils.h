@@ -21,6 +21,8 @@ public:
   std::unordered_map<VObject*, ManagedObject> meshes;
   GWindow* gw = nullptr;
 
+  static std::vector<std::vector<float>> base_triangle, base_square;
+
   SceneManager();
 
   SceneManager(GWindow* gw);
@@ -28,6 +30,12 @@ public:
   void add(VObject* vo);
 
   void remove(VObject* vo);
+
+  void set_base_meshes();
+
+  VObject* new_triangle(float x, float y, float scale, uint32_t color);
+
+  VObject* new_square(float x, float y, float scale, uint32_t color);
 };
 
 // Called before init() of GWindow
