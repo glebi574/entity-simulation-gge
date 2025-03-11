@@ -6,6 +6,8 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
   gw->set_orthographic_projection(width, height);
 
   glViewport(0, 0, width, height);
+  gw->width = width;
+  gw->height = height;
 }
 
 void GWindow::set_orthographic_projection(float width, float height) {
@@ -47,6 +49,8 @@ int GWindow::init() {
   bool fullscreen = false;
 
   int x = 600, y = 600;
+  width = x;
+  height = y;
   if (fullscreen) {
     GLFWmonitor* monitor = glfwGetPrimaryMonitor();
     const GLFWvidmode* mode = glfwGetVideoMode(monitor);
@@ -96,6 +100,12 @@ int GWindow::init() {
   return 0;
 }
 
+void GWindow::get_cursor_pos(double& x, double& y) {
+  glfwGetCursorPos(window, &x, &y);
+  x =  x / width  * 2000 - 1000;
+  y = -y / height * 2000 + 1000;
+}
+
 void GWindow::draw_tvo() {
   glUseProgram(triangle_sp);
   glUniformMatrix4fv(pm_location, 1, GL_FALSE, &pm.m[0][0]);
@@ -127,7 +137,7 @@ void GWindow::draw_gvo() {
 }
 
 void GWindow::window_proc() {
-  glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+  glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
   glClear(GL_COLOR_BUFFER_BIT);
 
   draw_tvo();

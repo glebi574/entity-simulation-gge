@@ -1,15 +1,17 @@
 #include "ui.h"
+#include "entity.h"
 
 int main() {
   srand(time(0));
 
-  UIHandler h;
-  if (h.init())
+  UIHandler uih;
+  CEntity::ui = &uih;
+  if (uih.init())
     return 1;
-  while (!glfwWindowShouldClose(h.gw.window)) {
-    h.proc();
+  while (!glfwWindowShouldClose(uih.gw.window)) {
+    uih.proc();
   }
-  h.gw.clear();
+  uih.gw.clear();
 
   return 0;
 }

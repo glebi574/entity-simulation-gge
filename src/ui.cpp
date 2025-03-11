@@ -6,20 +6,10 @@ int UIHandler::init() {
   if (gw.init())
     return 1;
 
-  scenes.emplace_back(SceneManager(&gw));
-  scenes.emplace_back(SceneManager(&gw));
-  SceneManager* scene = &scenes[0];
-  for (int i = 0; i < 10; ++i) {
-    MeshConstructor mc;
-    std::vector<float> s = { -16, -16, 16, 16 };
-    mc.add_rectangle(s, 0xffa000ff);
-    ManagedObject* mo = &scene->meshes.at(scene->add(mc));
-    mo->pos[0] = irand(-500, 500);
-    mo->pos[1] = irand(-500, 500);
-  }
-  cs_index = 1;
-  new_panel({ -200, -200, 200, 200 }, 20, 0x00000080, 0xff4040ff);
-  gw.add_text("text text text text text", -200, 0, 1, 0xffffffff);
+  for (int i = 0; i < 2; ++i)
+    scenes.emplace_back(SceneManager(&gw));
+  new_panel({(float)panel_left, (float)panel_bottom, (float)panel_right, (float)panel_top}, 2, panel_inner_color, panel_frame_color);
+  new_panel({(float)panel2_left, (float)panel2_bottom, (float)panel2_right, (float)panel2_top}, 2, panel_inner_color, panel_frame_color);
   
   return 0;
 }
@@ -62,19 +52,7 @@ VObject* UIHandler::new_panel(const std::vector<float>& rectangle, float frame_w
 }
 
 void UIHandler::handler() {
-  for (auto& [vo, mo] : scenes[0].meshes) {
-    mo.angle[2] += 0.03;
-    mo.update_vo();
-  }
-  double x, y;
-  glfwGetCursorPos(gw.window, &x, &y);
-  int width, height;
-  glfwGetWindowSize(gw.window, &width, &height);
-  for (auto& [vo, mo] : scenes[1].meshes) {
-    mo.pos[0] = x / width * 2000 - 1000;
-    mo.pos[1] = -y / height * 2000 + 1000;
-    mo.update_vo();
-  }
+  
 }
 
 void UIHandler::proc() {

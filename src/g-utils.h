@@ -86,6 +86,7 @@ public:
 // Used to create windows and works with them
 class GWindow {
 public:
+  int width, height;
   GLFWwindow* window;
   GLuint pm_location, triangle_sp, glyph_sp;
   TMatrix pm;
@@ -110,8 +111,12 @@ public:
 
   TextVO* add_text(std::string text, float x, float y, float scale, uint32_t color);
 
+  void get_cursor_pos(double& x, double& y);
+
+  // Draws all triangles
   void draw_tvo();
 
+  // Draws all glyphs
   void draw_gvo();
 
   void remove_vo(VObject* vo);
