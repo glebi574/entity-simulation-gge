@@ -10,7 +10,7 @@ int UIHandler::init() {
     scenes.emplace_back(SceneManager(&gw));
   new_panel({(float)panel_left, (float)panel_bottom, (float)panel_right, (float)panel_top}, 2, panel_inner_color, panel_frame_color);
   new_panel({(float)panel2_left, (float)panel2_bottom, (float)panel2_right, (float)panel2_top}, 2, panel_inner_color, panel_frame_color);
-  
+
   return 0;
 }
 

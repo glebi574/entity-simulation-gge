@@ -68,7 +68,7 @@ void insert_vertex24(std::vector<float>& to, const std::vector<float>& from, int
   to.emplace_back(0);
 }
 
-float triangle_scale = sin(PI / 3), square_scale = sin(PI / 4);
+float triangle_scale = sin(PI / 3) / 1.5, square_scale = sin(PI / 4) * 2;
 
 void MeshConstructor::add_triangle(float x, float y, float scale, uint32_t color) {
   scale *= triangle_scale;

@@ -8,6 +8,8 @@ int main() {
   CEntity::ui = &uih;
   if (uih.init())
     return 1;
+  ECell::sm = &uih.scenes[1];
+  CEntity ce;
   while (!glfwWindowShouldClose(uih.gw.window)) {
     uih.proc();
   }

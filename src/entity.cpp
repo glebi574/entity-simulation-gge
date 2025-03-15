@@ -1,7 +1,11 @@
 #include "entity.h"
 
-CEntity::CEntity(UIHandler* ui) {
-  this->ui = ui;
+CEntity::CEntity() {
+  
+}
+
+CEntity::CEntity(CEntity* ce) {
+
 }
 
 UIHandler* CEntity::ui;
