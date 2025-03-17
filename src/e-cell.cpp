@@ -1,10 +1,7 @@
 #include "entity.h"
 
-// Offset for the cell pattern
-float cell_size = 16, tdx = cell_size * sqrt(3) / 2, tdy = cell_size / 2;
-
 ECell::ECell() {
-  
+
 }
 
 /*
@@ -61,12 +58,3 @@ void ECell::randomize_stats() {
   speed = frand(min.speed, avg_max.speed);
   rotation_speed = frand(min.rotation_speed, avg_max.rotation_speed);
 }
-
-void ECell::create_vo(int8_t x, int8_t y) {
-  MeshConstructor mc;
-  bool flip = (x + y) % 2;
-  mc.add_triangle(tdx * x + (flip ? 0 : -tdx / 3), tdy * y, flip ? -cell_size : cell_size, stats_to_color());
-  vo = sm->add(mc);
-}
-
-SceneManager* ECell::sm;

@@ -13,28 +13,30 @@ public:
     min{ 0.1, 0.4, 0, 0, 0, 0 },
     max{ 2, 10, 1, 5, 20, 1 },
     avg_max{0.5, 4, 0.4, 2, 6, 0.4};
-  VObject* vo;
-
-  static SceneManager* sm;
 
   ECell();
 
   uint32_t stats_to_color();
 
   void randomize_stats();
-
-  void create_vo(int8_t x, int8_t y);
 };
 
 class CellManager {
 public:
   std::unordered_map<uint16_t, ECell> cells;
+  VObject* vo;
+
+  static SceneManager* sm;
 
   CellManager();
 
   ECell* add(int8_t x, int8_t y);
 
+  void create_vo();
+
   constexpr uint16_t to_uid(int8_t x, int8_t y) const;
+
+  void from_uid(uint16_t uid, int8_t& x, int8_t& y) const;
 
   ECell& operator()(int8_t x, int8_t y);
 

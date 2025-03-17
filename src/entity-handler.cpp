@@ -24,13 +24,11 @@ void HCEntity::update_mo() {
   if (!was_updated)
     return;
   was_updated = false;
-  for (auto& [index, cell] : cm.cells) {
-    ManagedObject* mo = &ECell::sm->meshes[cell.vo];
-    mo->pos[0] = x;
-    mo->pos[1] = y;
-    mo->angle[2] = angle;
-    mo->update_vo();
-  }
+  ManagedObject* mo = &cm.sm->meshes[cm.vo];
+  mo->pos[0] = x;
+  mo->pos[1] = y;
+  mo->angle[2] = angle;
+  mo->update_vo();
 }
 
 void HCEntity::proc() {
@@ -48,7 +46,7 @@ void EntityHandler::new_entity(float x, float y) {
   HCEntity* ce = entities.back().get();
   ce->cm.add(0, 0);
   ce->cm(0, 0).randomize_stats();
-  ce->cm(0, 0).create_vo(0, 0);
+  ce->cm.create_vo();
   ce->x = x;
   ce->y = y;
 

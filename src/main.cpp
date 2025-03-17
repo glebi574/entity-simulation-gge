@@ -8,7 +8,7 @@ int main() {
   CEntity::ui = &uih;
   if (uih.init())
     return 1;
-  ECell::sm = &uih.scenes[1];
+  CellManager::sm = &uih.scenes[1];
   EntityHandler eh;
   eh.initial_spawn();
   while (!glfwWindowShouldClose(uih.gw.window)) {
