@@ -1,5 +1,5 @@
 #include "ui.h"
-#include "entity.h"
+#include "entity-handler.h"
 
 int main() {
   srand(time(0));
@@ -9,9 +9,13 @@ int main() {
   if (uih.init())
     return 1;
   ECell::sm = &uih.scenes[1];
-  CEntity ce;
+  EntityHandler eh;
+  eh.initial_spawn();
   while (!glfwWindowShouldClose(uih.gw.window)) {
+    frame_time_update();
     uih.proc();
+    eh.proc();
+    frame_limiter();
   }
   uih.gw.clear();
 

@@ -19,11 +19,11 @@ public:
 
   ECell();
 
-  ECell(int8_t x, int8_t y);
-
   uint32_t stats_to_color();
 
   void randomize_stats();
+
+  void create_vo(int8_t x, int8_t y);
 };
 
 class CellManager {
@@ -32,7 +32,7 @@ public:
 
   CellManager();
 
-  void add(int8_t x, int8_t y);
+  ECell* add(int8_t x, int8_t y);
 
   constexpr uint16_t to_uid(int8_t x, int8_t y) const;
 
@@ -43,9 +43,11 @@ public:
 
 class CEntity {
 public:
-  static UIHandler* ui;
+  uint32_t id = 0;
   CellManager cm;
-  float x = 0, y = 0;
+
+  static uint32_t id_counter;
+  static UIHandler* ui;
 
   CEntity();
 

@@ -5,13 +5,12 @@ constexpr uint16_t CellManager::to_uid(int8_t x, int8_t y) const {
 }
 
 CellManager::CellManager() {
-  for (int i = 0; i < 225; ++i) {
-    add(i / 15 - 7, i % 15 - 7);
-  }
+  
 }
 
-void CellManager::add(int8_t x, int8_t y) {
-  (*this)(x, y) = ECell(x, y);
+ECell* CellManager::add(int8_t x, int8_t y) {
+  (*this)(x, y) = ECell();
+  return &(*this)(x, y);
 }
 
 ECell& CellManager::operator()(int8_t x, int8_t y) {

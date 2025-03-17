@@ -1,5 +1,9 @@
 #include "draw-utils.h"
 
+ManagedObject::ManagedObject() {
+  
+}
+
 ManagedObject::ManagedObject(VObject* vo) {
   this->vo = vo;
 }

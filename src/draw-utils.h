@@ -11,6 +11,8 @@ public:
     scale[3] = { 1, 1, 1 },
     pos[3] = { 0, 0, 0 };
 
+  ManagedObject();
+
   ManagedObject(VObject* vo);
 
   void update_vo();

@@ -56,8 +56,6 @@ void UIHandler::handler() {
 }
 
 void UIHandler::proc() {
-  frame_time_update();
   handler();
   gw.window_proc();
-  frame_limiter();
 }
