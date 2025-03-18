@@ -38,6 +38,8 @@ public:
 
   void from_uid(uint16_t uid, int8_t& x, int8_t& y) const;
 
+  bool contains(int8_t x, int8_t y);
+
   ECell& operator()(int8_t x, int8_t y);
 
   const ECell& operator()(int8_t x, int8_t y) const;

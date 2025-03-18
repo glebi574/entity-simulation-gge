@@ -23,7 +23,7 @@ class HCEntity : public CEntity {
 public:
   float x = 0, y = 0, angle = 0;
   bool was_updated = true;
-  SceneChunk* chunk;
+  SceneChunk* chunk = nullptr;
 
   HCEntity();
 
@@ -41,7 +41,14 @@ public:
 
   EntityHandler();
 
+  // Creates random single-cell entity at given position
   void new_entity(float x, float y);
+
+  // Removes entity from its chunk; to be used with add_entity_to_chunk to update entity's chunk pointer
+  void remove_chunk_link(HCEntity* e);
+
+  // Adds entity to chunk and updates its chunk pointer
+  void add_entity_to_chunks(HCEntity* e);
 
   void initial_spawn();
 

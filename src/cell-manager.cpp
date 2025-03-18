@@ -32,6 +32,10 @@ void CellManager::create_vo() {
   vo = sm->add(mc);
 }
 
+bool CellManager::contains(int8_t x, int8_t y) {
+  return cells.find(to_uid(x, y)) == cells.end();
+}
+
 ECell& CellManager::operator()(int8_t x, int8_t y) {
   return cells[to_uid(x, y)];
 }

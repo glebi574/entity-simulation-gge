@@ -1,38 +1,8 @@
 #include "entity-handler.h"
 
 void get_chunk_indexes(float x, float y, int& ix, int& iy) {
-  ix = static_cast<int>(x) % SceneChunk::width;
-  iy = static_cast<int>(y) % SceneChunk::height;
-}
-
-SceneChunk::SceneChunk() {
-
-}
-
-SceneChunk::SceneChunk(int x, int y) {
-  x1 = x;
-  y1 = y;
-  x2 = x + width;
-  y2 = y + height;
-}
-
-HCEntity::HCEntity() {
-
-}
-
-void HCEntity::update_mo() {
-  if (!was_updated)
-    return;
-  was_updated = false;
-  ManagedObject* mo = &cm.sm->meshes[cm.vo];
-  mo->pos[0] = x;
-  mo->pos[1] = y;
-  mo->angle[2] = angle;
-  mo->update_vo();
-}
-
-void HCEntity::proc() {
-
+  ix = (static_cast<int>(x) - PANEL1_LEFT) / SceneChunk::width;
+  iy = (static_cast<int>(y) - PANEL1_BOTTOM) / SceneChunk::height;
 }
 
 EntityHandler::EntityHandler() {
@@ -49,8 +19,19 @@ void EntityHandler::new_entity(float x, float y) {
   ce->cm.create_vo();
   ce->x = x;
   ce->y = y;
-
+  add_entity_to_chunks(ce);
   ce->update_mo();
+}
+
+void EntityHandler::remove_chunk_link(HCEntity* e) {
+  e->chunk->entities.erase(e->id);
+}
+
+void EntityHandler::add_entity_to_chunks(HCEntity* e) {
+  int cx, cy;
+  get_chunk_indexes(e->x, e->y, cx, cy);
+  e->chunk = &chunks[cx][cy];
+  chunks[cx][cy].entities[e->id] = e;
 }
 
 void EntityHandler::initial_spawn() {

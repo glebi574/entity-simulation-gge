@@ -44,9 +44,9 @@ alternative color schemes:
 
 uint32_t ECell::stats_to_color() {
   return rgba_to_color(
-    (regeneration / max.regeneration + health / max.health + armor / max.armor) / 3 * 255,
-    (speed / max.speed + rotation_speed / max.rotation_speed) / 2 * 255,
-    damage / max.damage * 255,
+    (regeneration / max.regeneration + health / max.health + armor / max.armor) / 3 * 192 + 63,
+    (speed / max.speed + rotation_speed / max.rotation_speed) / 2 * 192 + 63,
+    damage / max.damage * 192 + 63,
     255);
 }
 
