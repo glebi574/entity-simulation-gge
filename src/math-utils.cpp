@@ -4,8 +4,20 @@ int irand(int l, int h) {
   return l + rand() % (h - l);
 }
 
+float
+  __c_frand = static_cast<float>(RAND_MAX),
+  __c_frandr = __c_frand / 2;
+
+float frand() {
+  return static_cast<float>(rand()) / __c_frand;
+}
+
+float frandr() {
+  return static_cast<float>(rand()) / __c_frandr - 1.f;
+}
+
 float frand(float l, float h) {
-  return l + static_cast<float>(rand()) / static_cast<float>(RAND_MAX) * (h - l);
+  return l + static_cast<float>(rand()) / __c_frand * (h - l);
 }
 
 Vertex::Vertex(float pos[3], uint32_t color) {

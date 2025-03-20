@@ -11,6 +11,10 @@
 
 int irand(int l, int h);
 
+float frand();
+
+float frandr();
+
 float frand(float l, float h);
 
 class ColorComponent {

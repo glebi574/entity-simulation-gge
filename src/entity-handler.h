@@ -2,6 +2,7 @@
 #define G_ENTITY_HANDLER
 
 #include "entity.h"
+#include "neural-network.h"
 
 #define CHUNKS_X 10
 #define CHUNKS_Y 10
@@ -22,8 +23,8 @@ struct SceneChunk {
 class HCEntity : public CEntity {
 public:
   float x = 0, y = 0, angle = 0;
-  bool was_updated = true;
   SceneChunk* chunk = nullptr;
+  NeuralNetwork nn;
 
   HCEntity();
 
@@ -37,7 +38,8 @@ public:
   std::vector<std::unique_ptr<HCEntity>> entities;
   SceneChunk chunks[CHUNKS_X][CHUNKS_Y];
   
-  static const int left = PANEL1_LEFT, right = PANEL1_RIGHT, bottom = PANEL1_BOTTOM, top = PANEL1_TOP;
+  static const int left = PANEL1_LEFT, right = PANEL1_RIGHT, bottom = PANEL1_BOTTOM, top = PANEL1_TOP,
+    width = right - left, height = top - bottom;
 
   EntityHandler();
 

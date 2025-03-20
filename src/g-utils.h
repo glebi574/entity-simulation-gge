@@ -123,8 +123,6 @@ public:
 
   // Free memory
   void clear();
-
-  friend struct VObject;
 };
 
 #endif

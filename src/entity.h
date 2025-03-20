@@ -10,9 +10,9 @@ struct CellData {
 class ECell : public CellData {
 public:
   inline static const CellData
-    min{ 0.1, 0.4, 0, 0, 0, 0 },
-    max{ 2, 10, 1, 5, 20, 1 },
-    avg_max{0.5, 4, 0.4, 2, 6, 0.4};
+    min{ 0.1f, 0.4f, 0.f, 0.f, 0.f, 0.f },
+    max{ 2.f, 10.f, 1.f, 5.f, 20.f, 1.f },
+    avg_max{0.5f, 4.f, 0.4f, 2.f, 6.f, 0.4f};
 
   ECell();
 

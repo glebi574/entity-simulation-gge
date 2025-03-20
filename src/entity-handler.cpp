@@ -41,5 +41,6 @@ void EntityHandler::initial_spawn() {
 }
 
 void EntityHandler::proc() {
-
+  for (std::unique_ptr<HCEntity>& e : entities)
+    e.get()->proc();
 }
