@@ -8,6 +8,7 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
   glViewport(0, 0, width, height);
   gw->width = width;
   gw->height = height;
+  gw->size_ratio = static_cast<double>(width) / static_cast<double>(height);
 }
 
 void GWindow::set_orthographic_projection(float width, float height) {
@@ -104,6 +105,10 @@ void GWindow::get_cursor_pos(double& x, double& y) {
   glfwGetCursorPos(window, &x, &y);
   x =  x / width  * 2000 - 1000;
   y = -y / height * 2000 + 1000;
+  if (size_ratio < 1.0)
+    x *= size_ratio;
+  else
+    y /= size_ratio;
 }
 
 void GWindow::draw_tvo() {

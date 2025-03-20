@@ -87,6 +87,7 @@ public:
 class GWindow {
 public:
   int width, height;
+  double size_ratio = 1;
   GLFWwindow* window;
   GLuint pm_location, triangle_sp, glyph_sp;
   TMatrix pm;

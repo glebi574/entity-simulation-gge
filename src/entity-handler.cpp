@@ -3,16 +3,20 @@
 void get_chunk_indexes(float x, float y, int& ix, int& iy) {
   ix = (static_cast<int>(x) - PANEL1_LEFT) / SceneChunk::width;
   iy = (static_cast<int>(y) - PANEL1_BOTTOM) / SceneChunk::height;
+  if (ix == CHUNKS_X)
+    --ix;
+  if (iy == CHUNKS_Y)
+    --iy;
 }
 
 EntityHandler::EntityHandler() {
   for (int i = 0; i < CHUNKS_X; ++i)
     for (int n = 0; n < CHUNKS_Y; ++n)
-      chunks[i][n] = SceneChunk(i * SceneChunk::width, n * SceneChunk::height);
+      chunks[i][n] = SceneChunk(i * SceneChunk::width + EntityHandler::left , n * SceneChunk::height + EntityHandler::bottom);
 }
 
 void EntityHandler::new_entity(float x, float y) {
-  entities.emplace_back(std::make_unique<HCEntity>());
+  entities.emplace_back(std::make_unique<HCEntity>(this));
   HCEntity* ce = entities.back().get();
   ce->cm.add(0, 0);
   ce->cm(0, 0).randomize_stats();
@@ -35,7 +39,7 @@ void EntityHandler::add_entity_to_chunks(HCEntity* e) {
 }
 
 void EntityHandler::initial_spawn() {
-  for (int i = 0; i < 10; ++i) {
+  for (int i = 0; i < 100; ++i) {
     new_entity(frand(left, right), frand(bottom, top));
   }
 }

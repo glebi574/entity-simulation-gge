@@ -8,6 +8,7 @@
 #define CHUNKS_Y 10
 
 class HCEntity;
+class EntityHandler;
 
 struct SceneChunk {
   int x1 = 0, y1 = 0, x2 = 0, y2 = 0;
@@ -24,9 +25,12 @@ class HCEntity : public CEntity {
 public:
   float x = 0, y = 0, angle = 0;
   SceneChunk* chunk = nullptr;
+  EntityHandler* eh = nullptr;
   NeuralNetwork nn;
 
   HCEntity();
+
+  HCEntity(EntityHandler* eh);
 
   void update_mo();
 
@@ -56,5 +60,7 @@ public:
 
   void proc();
 };
+
+void get_chunk_indexes(float x, float y, int& ix, int& iy);
 
 #endif
