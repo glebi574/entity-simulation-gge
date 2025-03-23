@@ -23,7 +23,9 @@ struct SceneChunk {
 
 class HCEntity : public CEntity {
 public:
-  float x = 0, y = 0, angle = 0;
+  float x = 0, y = 0, angle = 0, speed = 0, rotation_speed = 0, radius = 0, energy = 1.f;
+  bool is_invincible = false;
+  uint8_t chunk_x = 0, chunk_y = 0, invincibility_timer = 0;
   SceneChunk* chunk = nullptr;
   EntityHandler* eh = nullptr;
   NeuralNetwork nn;
@@ -34,6 +36,8 @@ public:
 
   void update_mo();
 
+  bool check_chunk_change(float& x, float& y);
+
   void proc();
 };
 
@@ -41,6 +45,7 @@ class EntityHandler {
 public:
   std::vector<std::unique_ptr<HCEntity>> entities;
   SceneChunk chunks[CHUNKS_X][CHUNKS_Y];
+  int min_entities = 100;
   
   static const int left = PANEL1_LEFT, right = PANEL1_RIGHT, bottom = PANEL1_BOTTOM, top = PANEL1_TOP,
     width = right - left, height = top - bottom;

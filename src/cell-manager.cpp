@@ -4,7 +4,7 @@ constexpr uint16_t CellManager::to_uid(int8_t x, int8_t y) const {
   return (static_cast<uint8_t>(x) << 8) | (static_cast<uint8_t>(y));
 }
 
-void CellManager::from_uid(uint16_t uid, int8_t& x, int8_t& y) const {
+void CellManager::from_uid(uint16_t uid, int8_t& x, int8_t& y) {
   x = static_cast<int8_t>(uid >> 8);
   y = static_cast<int8_t>(uid & 0xff);
 }
@@ -19,7 +19,7 @@ ECell* CellManager::add(int8_t x, int8_t y) {
 }
 
 // Offset for the cell pattern
-float cell_size = 16, tdx = cell_size * sqrt(3) / 2, tdy = cell_size / 2;
+float tdx = cell_size * sqrt(3) / 2, tdy = cell_size / 2;
 
 void CellManager::create_vo() {
   MeshConstructor mc;

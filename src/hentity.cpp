@@ -2,8 +2,8 @@
 
 /*
   Input:
-    x
-    y
+    closest_dx
+    closest_dy
     angle
 
   Output:
@@ -12,10 +12,10 @@
     angle
 */
 
-bool check_chunk_change(float& x, float& y, float& nx, float& ny) {
+bool HCEntity::check_chunk_change(float& x, float& y) {
   return
-    static_cast<int>(x) / SceneChunk::width == static_cast<int>(nx) / SceneChunk::width &&
-    static_cast<int>(y) / SceneChunk::width == static_cast<int>(ny) / SceneChunk::width;
+    static_cast<int>(x) / SceneChunk::width == chunk_x &&
+    static_cast<int>(y) / SceneChunk::width == chunk_y;
 }
 
 HCEntity::HCEntity() {
@@ -56,11 +56,37 @@ void HCEntity::update_mo() {
 */
 
 void HCEntity::proc() {
-  nn.calculate({(x - EntityHandler::left) / EntityHandler::width, (y - EntityHandler::bottom) / EntityHandler::top, angle});
-  angle += (nn.nodes_o[2] * TAU - angle) * 0.1f;
+  // Getting data for neural network
+  HCEntity* ce = nullptr;
+  float cl = 0xffffffff;
+  for (int i = chunk_x - 1; i < chunk_x + 2; ++i) {
+    if (i < 0 || i >= CHUNKS_X)
+      continue;
+    for (int n = chunk_y - 1; n < chunk_y + 2; ++n) {
+      if (n < 0 || n >= CHUNKS_Y)
+        continue;
+      for (auto& [eid, e] : eh->chunks[i][n].entities)
+        if (eid != id) {
+          float dx = e->x - x, dy = e->y - y, l = dx * dx + dy * dy;
+          if (l < cl) {
+            cl = l;
+            ce = e;
+          }
+        }
+    }
+  }
+  if (ce == nullptr)
+    nn.calculate({0, 0, angle});
+  else
+    nn.calculate({ ce->x - x, ce->y - y, angle });
+
+  // Transforming output values
+  angle += (nn.nodes_o[2] * TAU - angle) * rotation_speed;
   float ma = nn.nodes_o[0] * TAU, ms = nn.nodes_o[1],
-    nx = x + cos(ma) * ms * 10,
-    ny = y + sin(ma) * ms * 10;
+    nx = x + cos(ma) * ms * speed,
+    ny = y + sin(ma) * ms * speed;
+
+  // Border collisions
   if (nx < EntityHandler::left)
     nx = EntityHandler::left;
   else if (nx > EntityHandler::right)
@@ -71,7 +97,7 @@ void HCEntity::proc() {
     ny = EntityHandler::top;
   x = nx;
   y = ny;
-  if (check_chunk_change(x, y, nx, ny)) {
+  if (check_chunk_change(x, y)) {
     eh->remove_chunk_link(this);
     eh->add_entity_to_chunks(this);
   }

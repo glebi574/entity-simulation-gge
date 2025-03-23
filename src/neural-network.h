@@ -11,10 +11,12 @@ public:
 
   NeuralNetwork();
 
+  // Sets amount of nodes in each layer
   void set_node_amount(uint8_t input, uint8_t hidden, uint8_t output);
 
   void randomize_ratios();
 
+  // Executes calculation cycle with given inputs
   void calculate(const std::vector<float>& input);
 };
 
