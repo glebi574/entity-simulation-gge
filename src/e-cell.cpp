@@ -4,6 +4,14 @@ ECell::ECell() {
 
 }
 
+float& CellData::operator[](uint8_t index) {
+  return *(reinterpret_cast<float*>(this) + offsets[index]);
+}
+
+const float& CellData::operator[](uint8_t index) const {
+  return *(reinterpret_cast<const float*>(this) + offsets[index]);
+}
+
 /*
 alternative color schemes:
   float
@@ -58,3 +66,16 @@ void ECell::randomize_stats() {
   speed = frand(min.speed, avg_max.speed);
   rotation_speed = frand(min.rotation_speed, avg_max.rotation_speed);
 }
+
+void ECell::calculate_energy() {
+  for (int i = 0; i < 6; ++i) {
+    double e = ((*this)[i] - min[i]) / range[i];
+    energy_usage += e * e;
+  }
+}
+
+uint8_t CellData::offsets[] = {
+  offsetof(CellData, regeneration) / sizeof(float), offsetof(CellData, health) / sizeof(float),
+  offsetof(CellData, armor) / sizeof(float), offsetof(CellData, damage) / sizeof(float),
+  offsetof(CellData, speed) / sizeof(float), offsetof(CellData, rotation_speed) / sizeof(float)
+};

@@ -23,9 +23,10 @@ struct SceneChunk {
 
 class HCEntity : public CEntity {
 public:
-  float x = 0, y = 0, angle = 0, speed = 0, rotation_speed = 0, radius = 0, energy = 1.f;
-  bool is_invincible = false;
-  uint8_t chunk_x = 0, chunk_y = 0, invincibility_timer = 0;
+  float x = 0.f, y = 0.f, angle = 0.f, speed = 0.f, rotation_speed = 0.f, radius = 0.f;
+  inline static const double energy_per_cell = 100.0;
+  double energy = 0.0, energy_usage = 0.0, min_energy = 0.0, max_energy = 0.0;
+  uint8_t chunk_x = 0, chunk_y = 0, invincibility_timer = 128;
   SceneChunk* chunk = nullptr;
   EntityHandler* eh = nullptr;
   NeuralNetwork nn;
@@ -36,14 +37,22 @@ public:
 
   void update_mo();
 
-  bool check_chunk_change(float& x, float& y);
+  bool check_chunk_change(float& x, float& y) const;
 
   void proc();
+
+  void calculate_speed();
+
+  void calculate_radius();
+
+  void calculate_energy();
+
+  void remove();
 };
 
 class EntityHandler {
 public:
-  std::vector<std::unique_ptr<HCEntity>> entities;
+  std::unordered_map<uint32_t, std::unique_ptr<HCEntity>> entities;
   SceneChunk chunks[CHUNKS_X][CHUNKS_Y];
   int min_entities = 100;
   

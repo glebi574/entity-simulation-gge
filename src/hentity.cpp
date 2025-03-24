@@ -12,7 +12,7 @@
     angle
 */
 
-bool HCEntity::check_chunk_change(float& x, float& y) {
+bool HCEntity::check_chunk_change(float& x, float& y) const {
   return
     static_cast<int>(x) / SceneChunk::width == chunk_x &&
     static_cast<int>(y) / SceneChunk::width == chunk_y;
@@ -65,14 +65,15 @@ void HCEntity::proc() {
     for (int n = chunk_y - 1; n < chunk_y + 2; ++n) {
       if (n < 0 || n >= CHUNKS_Y)
         continue;
-      for (auto& [eid, e] : eh->chunks[i][n].entities)
-        if (eid != id) {
-          float dx = e->x - x, dy = e->y - y, l = dx * dx + dy * dy;
-          if (l < cl) {
-            cl = l;
-            ce = e;
-          }
+      for (auto& [eid, e] : eh->chunks[i][n].entities) {
+        if (eid == id)
+          continue;
+        float dx = e->x - x, dy = e->y - y, l = dx * dx + dy * dy;
+        if (l < cl) {
+          cl = l;
+          ce = e;
         }
+      }
     }
   }
   if (ce == nullptr)
@@ -102,4 +103,66 @@ void HCEntity::proc() {
     eh->add_entity_to_chunks(this);
   }
   update_mo();
+
+  energy -= energy_usage;
+  if (energy < min_energy)
+    return remove();
+}
+
+template <typename T, typename TA>
+void umap_to_vec(std::vector<T*>& output, std::unordered_map<TA, T>& umap) {
+  output.reserve(umap.size());
+  for (auto& [key, value] : umap)
+    output.emplace_back(&value);
+}
+
+void HCEntity::calculate_speed() {
+  std::vector<ECell*> cells;
+  umap_to_vec(cells, cm.cells);
+  std::sort(cells.begin(), cells.end(), [](const ECell* a, const ECell* b) {
+    return a->speed > b->speed;
+    });
+  float divider = 0.5f;
+  for (const ECell* c : cells)
+    speed += c->speed / (divider *= 2.f);
+  std::sort(cells.begin(), cells.end(), [](const ECell* a, const ECell* b) {
+    return a->rotation_speed > b->rotation_speed;
+    });
+  divider = 0.5f;
+  for (const ECell* c : cells)
+    rotation_speed += c->rotation_speed / (divider *= 2.f);
+}
+
+void HCEntity::calculate_radius() {
+  int8_t fl = 0;
+  ECell* fc = nullptr;
+  for (auto& [uid, cell] : cm.cells) {
+    int8_t cx, cy;
+    CellManager::from_uid(uid, cx, cy);
+    float cl = cell.x * cell.x + cell.y * cell.y;
+    if (cl > fl) {
+      fl = cl;
+      fc = &cell;
+    }
+  }
+  radius = sqrt(fc->x * fc->x + fc->y * fc->y) + cell_radius;
+}
+
+void HCEntity::calculate_energy() {
+  for (auto& [uid, cell] : cm.cells) {
+    cell.calculate_energy();
+    energy_usage += cell.energy_usage;
+  }
+  for (int i = 0; i < 5; ++i)
+    max_energy += energy_per_cell * (1.0 - i * 0.1);
+  for (int i = 5; i < cm.cells.size(); ++i)
+    max_energy += energy_per_cell / 2;
+  energy = max_energy;
+  min_energy = -max_energy / 2;
+}
+
+void HCEntity::remove() {
+  CellManager::sm->remove(cm.vo);
+  eh->remove_chunk_link(this);
+  eh->entities.erase(id);
 }

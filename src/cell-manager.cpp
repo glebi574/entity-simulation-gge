@@ -23,11 +23,13 @@ float tdx = cell_size * sqrt(3) / 2, tdy = cell_size / 2;
 
 void CellManager::create_vo() {
   MeshConstructor mc;
-  for (auto& [uid, ECell] : cells) {
+  for (auto& [uid, cell] : cells) {
     int8_t x, y;
     from_uid(uid, x, y);
     bool flip = (x + y) % 2;
-    mc.add_triangle(tdx * x + (flip ? 0 : -tdx / 3), tdy * y, flip ? -cell_size : cell_size, (*this)(x, y).stats_to_color());
+    cell.x = tdx * x + (flip ? 0 : -tdx / 3);
+    cell.y = tdy * y;
+    mc.add_triangle(cell.x, cell.y, flip ? -cell_size : cell_size, (*this)(x, y).stats_to_color());
   }
   vo = sm->add(mc);
 }
