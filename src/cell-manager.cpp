@@ -1,6 +1,6 @@
 #include "entity.h"
 
-constexpr uint16_t CellManager::to_uid(int8_t x, int8_t y) const {
+constexpr uint16_t CellManager::to_uid(int8_t x, int8_t y) {
   return (static_cast<uint8_t>(x) << 8) | (static_cast<uint8_t>(y));
 }
 
@@ -18,11 +18,17 @@ ECell* CellManager::add(int8_t x, int8_t y) {
   return &(*this)(x, y);
 }
 
+ECell* CellManager::add(int16_t uid) {
+  cells[uid] = ECell();
+  return &cells[uid];
+}
+
 // Offset for the cell pattern
 float tdx = cell_size * sqrt(3) / 2, tdy = cell_size / 2;
 
 void CellManager::create_vo() {
   MeshConstructor mc;
+  int i = 0;
   for (auto& [uid, cell] : cells) {
     int8_t x, y;
     from_uid(uid, x, y);
@@ -30,12 +36,13 @@ void CellManager::create_vo() {
     cell.x = tdx * x + (flip ? 0 : -tdx / 3);
     cell.y = tdy * y;
     mc.add_triangle(cell.x, cell.y, flip ? -cell_size : cell_size, (*this)(x, y).stats_to_color());
+    cell.vertex_index = i++;
   }
   vo = sm->add(mc);
 }
 
 bool CellManager::contains(int8_t x, int8_t y) {
-  return cells.find(to_uid(x, y)) == cells.end();
+  return cells.find(to_uid(x, y)) != cells.end();
 }
 
 ECell& CellManager::operator()(int8_t x, int8_t y) {

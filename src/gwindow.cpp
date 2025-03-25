@@ -173,7 +173,7 @@ TriangleVO* GWindow::add_tvo(std::vector<float>& positions, std::vector<uint32_t
 
   glGenBuffers(1, &vo->VBO);
   glBindBuffer(GL_ARRAY_BUFFER, vo->VBO);
-  glBufferData(GL_ARRAY_BUFFER, vo->vertexes.size() * sizeof(Vertex), vo->vertexes.data(), GL_STATIC_DRAW);
+  glBufferData(GL_ARRAY_BUFFER, vo->vertexes.size() * sizeof(Vertex), vo->vertexes.data(), GL_DYNAMIC_DRAW);
 
   glGenVertexArrays(1, &vo->VAO);
   glBindVertexArray(vo->VAO);

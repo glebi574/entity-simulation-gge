@@ -1,6 +1,14 @@
 #include "math-utils.h"
 
-int irand(int l, int h) {
+bool randb() {
+  return rand() % 2;
+}
+
+int randi(int h) {
+  return rand() % h;
+}
+
+int randi(int l, int h) {
   return l + rand() % (h - l);
 }
 
@@ -8,15 +16,15 @@ float
   __c_frand = static_cast<float>(RAND_MAX),
   __c_frandr = __c_frand / 2;
 
-float frand() {
+float randf() {
   return static_cast<float>(rand()) / __c_frand;
 }
 
-float frandr() {
+float randfr() {
   return static_cast<float>(rand()) / __c_frandr - 1.f;
 }
 
-float frand(float l, float h) {
+float randf(float l, float h) {
   return l + static_cast<float>(rand()) / __c_frand * (h - l);
 }
 

@@ -6,16 +6,23 @@
 
 #include <iostream>
 #include <vector>
+#include <unordered_set>
 #include <unordered_map>
 #include <random>
 
-int irand(int l, int h);
+bool randb();
 
-float frand();
+int randi(int h);
 
-float frandr();
+int randi(int l, int h);
 
-float frand(float l, float h);
+// [0; 1]
+float randf();
+
+// [-1; 1]
+float randfr();
+
+float randf(float l, float h);
 
 class ColorComponent {
 public:

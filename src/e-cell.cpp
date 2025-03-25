@@ -52,19 +52,19 @@ alternative color schemes:
 
 uint32_t ECell::stats_to_color() {
   return rgba_to_color(
-    (regeneration / max.regeneration + health / max.health + armor / max.armor) / 3 * 192 + 63,
-    (speed / max.speed + rotation_speed / max.rotation_speed) / 2 * 192 + 63,
-    damage / max.damage * 192 + 63,
+    ((regeneration - min.regeneration) / range.regeneration +
+      (health - min.health) / range.health +
+      (armor - min.armor) / range.armor) / 3 * 192 + 63,
+    ((speed - min.speed) / range.speed +
+      (rotation_speed - min.rotation_speed) / range.rotation_speed) / 2 * 192 + 63,
+    (damage - min.damage) / range.damage * 192 + 63,
     255);
 }
 
 void ECell::randomize_stats() {
-  health = frand(min.health, avg_max.health);
-  regeneration = frand(min.regeneration, avg_max.regeneration);
-  armor = frand(min.armor, avg_max.armor);
-  damage = frand(min.damage, avg_max.damage);
-  speed = frand(min.speed, avg_max.speed);
-  rotation_speed = frand(min.rotation_speed, avg_max.rotation_speed);
+  for (int i = 0; i < 6; ++i)
+    (*this)[i] = randf(min[i], avg_max[i]);
+  c_health = health;
 }
 
 void ECell::calculate_energy() {

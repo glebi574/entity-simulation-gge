@@ -1,6 +1,7 @@
 #include "entity-handler.h"
 
 /*
+    Neural Network:
   Input:
     closest_dx
     closest_dy
@@ -19,14 +20,21 @@ bool HCEntity::check_chunk_change(float& x, float& y) const {
 }
 
 HCEntity::HCEntity() {
-  nn.set_node_amount(3, 4, 3);
-  nn.randomize_ratios();
+
 }
 
 HCEntity::HCEntity(EntityHandler* eh) {
-  nn.set_node_amount(3, 4, 3);
-  nn.randomize_ratios();
   this->eh = eh;
+}
+
+void HCEntity::init() {
+  eh->add_entity_to_chunks(this);
+  cm.create_vo();
+  update_mo();
+  calculate_speed();
+  calculate_radius();
+  calculate_energy();
+  alive_cell_amount = cm.cells.size();
 }
 
 void HCEntity::update_mo() {
@@ -56,9 +64,24 @@ void HCEntity::update_mo() {
 */
 
 void HCEntity::proc() {
+  // Generating offspring and limiting energy
+  if (energy > max_energy) {
+    offspring_counter += 3;
+    energy = max_energy;
+  }
+  else
+    ++offspring_counter;
+  if (offspring_counter > 500) {
+    eh->new_entity(x, y, *this, 1.f);
+    energy = max_energy * 0.7f;
+    offspring_counter = 0;
+  }
   // Getting data for neural network
+  
+  // Closest entity
   HCEntity* ce = nullptr;
   float cl = 0xffffffff;
+  
   for (int i = chunk_x - 1; i < chunk_x + 2; ++i) {
     if (i < 0 || i >= CHUNKS_X)
       continue;
@@ -82,12 +105,14 @@ void HCEntity::proc() {
     nn.calculate({ ce->x - x, ce->y - y, angle });
 
   // Transforming output values
+
   angle += (nn.nodes_o[2] * TAU - angle) * rotation_speed;
   float ma = nn.nodes_o[0] * TAU, ms = nn.nodes_o[1],
     nx = x + cos(ma) * ms * speed,
     ny = y + sin(ma) * ms * speed;
 
   // Border collisions
+
   if (nx < EntityHandler::left)
     nx = EntityHandler::left;
   else if (nx > EntityHandler::right)
@@ -104,9 +129,58 @@ void HCEntity::proc() {
   }
   update_mo();
 
-  energy -= energy_usage;
-  if (energy < min_energy)
+  if ((energy -= energy_usage) < min_energy)
     return remove();
+
+  // Cell stuff
+
+  for (auto& [eid, cell] : cm.cells) {
+    if (cell.is_alive && cell.c_health < 0.f) {
+      cell.is_alive = false;
+      speed *= speed_modifier;
+      rotation_speed *= speed_modifier;
+      max_energy -= energy_per_cell;
+      --alive_cell_amount;
+      if (destruction_check())
+        return remove();
+      update_cell_color(cell, 0.5f);
+    }
+
+    if (!cell.is_alive && cell.c_health >= cell.health) {
+      cell.is_alive = true;
+      speed /= speed_modifier;
+      rotation_speed /= speed_modifier;
+      max_energy += energy_per_cell;
+      ++alive_cell_amount;
+      update_cell_color(cell, 1.f);
+    }
+
+    // Overheal is possible and it's feature ig
+    if (cell.c_health < cell.health)
+      cell.c_health += cell.regeneration;
+  }
+
+  // Entity collisions
+  
+  if (invincibility_timer)
+    --invincibility_timer;
+  if (invincibility_timer || ce == nullptr || ce->invincibility_timer)
+    return;
+  float dx = x - ce->x, dy = y - ce->y, r2 = radius + ce->radius;
+  if (dx * dx + dy * dy > r2 * r2)
+    return;
+  for (auto& [eid1, cell] : cm.cells)
+    for (auto& [eid2, ecell] : ce->cm.cells) {
+      float
+        cdx = dx + cell.x - ecell.x,
+        cdy = dy + cell.y - ecell.y;
+      if (cdx * cdx + cdy * cdy < cell_radius2) {
+        float attack = cell.damage - ecell.armor;
+        ecell.c_health -= attack;
+        energy += attack;
+        continue;
+      }
+    }
 }
 
 template <typename T, typename TA>
@@ -153,11 +227,7 @@ void HCEntity::calculate_energy() {
     cell.calculate_energy();
     energy_usage += cell.energy_usage;
   }
-  for (int i = 0; i < 5; ++i)
-    max_energy += energy_per_cell * (1.0 - i * 0.1);
-  for (int i = 5; i < cm.cells.size(); ++i)
-    max_energy += energy_per_cell / 2;
-  energy = max_energy;
+  energy = max_energy = pow(cm.cells.size(), 1.5) * energy_per_cell;
   min_energy = -max_energy / 2;
 }
 
@@ -165,4 +235,19 @@ void HCEntity::remove() {
   CellManager::sm->remove(cm.vo);
   eh->remove_chunk_link(this);
   eh->entities.erase(id);
+}
+
+bool HCEntity::destruction_check() {
+  if (alive_cell_amount == 0)
+    return true;
+  return false;
+}
+
+void HCEntity::update_cell_color(ECell& cell, float alpha) {
+  VObject* vo = cm.vo;
+  TriangleVO* tvo = reinterpret_cast<TriangleVO*>(vo);
+  glBindVertexArray(vo->VAO);
+  glBindBuffer(GL_ARRAY_BUFFER, vo->VBO);
+  tvo->vertexes[cell.vertex_index].color[3] = alpha;
+  glBufferSubData(GL_ARRAY_BUFFER, cell.vertex_index * sizeof(Vertex), sizeof(Vertex), &tvo->vertexes[cell.vertex_index]);
 }

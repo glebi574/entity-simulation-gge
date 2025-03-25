@@ -24,13 +24,13 @@ void NeuralNetwork::set_node_amount(uint8_t input, uint8_t hidden, uint8_t outpu
 
 void NeuralNetwork::randomize_ratios() {
   for (float& v : biases_h)
-    v = frandr();
+    v = randfr();
   for (float& v : biases_o)
-    v = frandr();
+    v = randfr();
   for (float& v : weights_i)
-    v = frandr();
+    v = randfr();
   for (float& v : weights_o)
-    v = frandr();
+    v = randfr();
 }
 
 void activation_function(float& x) {
