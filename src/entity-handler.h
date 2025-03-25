@@ -56,7 +56,7 @@ public:
 
   bool destruction_check();
 
-  void update_cell_color(ECell& cell, float alpha);
+  void update_cell_alpha(ECell& cell, float alpha);
 };
 
 class EntityHandler {

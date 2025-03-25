@@ -80,7 +80,7 @@ void EntityHandler::new_entity(float x, float y, HCEntity& e, float mutation_cha
           }
     }
     std::vector<uint16_t> positions(free_space.begin(), free_space.end());
-    while (positions.size() > 0 && randf() <= 0.6f) {
+    while (positions.size() > 0 && randf() <= 0.2f) {
       int index = randi(positions.size());
       ECell* c = ce->cm.add(positions[index]);
       c->randomize_stats();

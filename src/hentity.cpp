@@ -72,16 +72,17 @@ void HCEntity::proc() {
   else
     ++offspring_counter;
   if (offspring_counter > 500) {
-    eh->new_entity(x, y, *this, 1.f);
+    if (randb())
+      eh->new_entity(x, y, *this, 1.f);
     energy = max_energy * 0.7f;
     offspring_counter = 0;
   }
   // Getting data for neural network
-  
+
   // Closest entity
   HCEntity* ce = nullptr;
   float cl = 0xffffffff;
-  
+
   for (int i = chunk_x - 1; i < chunk_x + 2; ++i) {
     if (i < 0 || i >= CHUNKS_X)
       continue;
@@ -100,7 +101,7 @@ void HCEntity::proc() {
     }
   }
   if (ce == nullptr)
-    nn.calculate({0, 0, angle});
+    nn.calculate({ 0, 0, angle });
   else
     nn.calculate({ ce->x - x, ce->y - y, angle });
 
@@ -143,7 +144,7 @@ void HCEntity::proc() {
       --alive_cell_amount;
       if (destruction_check())
         return remove();
-      update_cell_color(cell, 0.5f);
+      update_cell_alpha(cell, 0.2f);
     }
 
     if (!cell.is_alive && cell.c_health >= cell.health) {
@@ -152,7 +153,7 @@ void HCEntity::proc() {
       rotation_speed /= speed_modifier;
       max_energy += energy_per_cell;
       ++alive_cell_amount;
-      update_cell_color(cell, 1.f);
+      update_cell_alpha(cell, 1.f);
     }
 
     // Overheal is possible and it's feature ig
@@ -161,7 +162,7 @@ void HCEntity::proc() {
   }
 
   // Entity collisions
-  
+
   if (invincibility_timer)
     --invincibility_timer;
   if (invincibility_timer || ce == nullptr || ce->invincibility_timer)
@@ -169,18 +170,23 @@ void HCEntity::proc() {
   float dx = x - ce->x, dy = y - ce->y, r2 = radius + ce->radius;
   if (dx * dx + dy * dy > r2 * r2)
     return;
+  // cell is attacking cell
   for (auto& [eid1, cell] : cm.cells)
-    for (auto& [eid2, ecell] : ce->cm.cells) {
-      float
-        cdx = dx + cell.x - ecell.x,
-        cdy = dy + cell.y - ecell.y;
-      if (cdx * cdx + cdy * cdy < cell_radius2) {
-        float attack = cell.damage - ecell.armor;
-        ecell.c_health -= attack;
-        energy += attack;
-        continue;
+    if (cell.is_alive)
+      // ecell is attacked cell
+      for (auto& [eid2, ecell] : ce->cm.cells) {
+        if (!ecell.is_alive)
+          continue;
+        float
+          cdx = dx + cell.x - ecell.x,
+          cdy = dy + cell.y - ecell.y;
+        if (cdx * cdx + cdy * cdy < cell_radius2) {
+          float attack = cell.damage - ecell.armor;
+          ecell.c_health -= attack;
+          energy += attack;
+          continue;
+        }
       }
-    }
 }
 
 template <typename T, typename TA>
@@ -243,11 +249,12 @@ bool HCEntity::destruction_check() {
   return false;
 }
 
-void HCEntity::update_cell_color(ECell& cell, float alpha) {
+void HCEntity::update_cell_alpha(ECell& cell, float alpha) {
   VObject* vo = cm.vo;
   TriangleVO* tvo = reinterpret_cast<TriangleVO*>(vo);
   glBindVertexArray(vo->VAO);
   glBindBuffer(GL_ARRAY_BUFFER, vo->VBO);
-  tvo->vertexes[cell.vertex_index].color[3] = alpha;
-  glBufferSubData(GL_ARRAY_BUFFER, cell.vertex_index * sizeof(Vertex), sizeof(Vertex), &tvo->vertexes[cell.vertex_index]);
+  for (int i = 0; i < 3; ++i)
+    tvo->vertexes[cell.vertex_index * 3 + i].color[3] = alpha;
+  glBufferSubData(GL_ARRAY_BUFFER, cell.vertex_index * sizeof(Vertex), sizeof(Vertex) * 3, &tvo->vertexes[cell.vertex_index]);
 }
