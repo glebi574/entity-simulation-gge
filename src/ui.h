@@ -15,7 +15,7 @@ public:
   // Index of current scene
   int cs_index = 0;
   // Coordinates
-  static const int left = -1000, right = 1000, bottom = -563, top = 563,
+  static const int left = -1000, right = 1000, bottom = -560, top = 560,
     panel_left = PANEL1_LEFT, panel_right = PANEL1_RIGHT, panel_bottom = PANEL1_BOTTOM, panel_top = PANEL1_TOP,
     panel2_left = PANEL1_RIGHT + 25, panel2_right = 950, panel2_bottom = PANEL1_BOTTOM, panel2_top = PANEL1_TOP;
   static const uint32_t panel_inner_color = 0, panel_frame_color = 0x804040ff;

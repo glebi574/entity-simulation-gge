@@ -33,7 +33,6 @@ void HCEntity::init() {
   update_mo();
   calculate_speed();
   calculate_radius();
-  calculate_energy();
   alive_cell_amount = cm.cells.size();
 }
 
@@ -64,17 +63,11 @@ void HCEntity::update_mo() {
 */
 
 void HCEntity::proc() {
-  // Generating offspring and limiting energy
-  if (energy > max_energy) {
-    offspring_counter += 3;
-    energy = max_energy;
-  }
-  else
-    ++offspring_counter;
-  if (offspring_counter > 500) {
+  // Generating offspring
+  ++offspring_counter;
+  if (offspring_counter > offspring_timer) {
     if (randb())
       eh->new_entity(x, y, *this, 1.f);
-    energy = max_energy * 0.7f;
     offspring_counter = 0;
   }
   // Getting data for neural network
@@ -84,15 +77,14 @@ void HCEntity::proc() {
   float cl = 0xffffffff;
 
   for (int i = chunk_x - 1; i < chunk_x + 2; ++i) {
-    if (i < 0 || i >= CHUNKS_X)
-      continue;
     for (int n = chunk_y - 1; n < chunk_y + 2; ++n) {
-      if (n < 0 || n >= CHUNKS_Y)
-        continue;
-      for (auto& [eid, e] : eh->chunks[i][n].entities) {
+      for (auto& [eid, e] : eh->chunks[(i + CHUNKS_X) % CHUNKS_X][(n + CHUNKS_Y) % CHUNKS_Y].entities) {
         if (eid == id)
           continue;
-        float dx = e->x - x, dy = e->y - y, l = dx * dx + dy * dy;
+        float
+          dx = e->x - e->chunk->x1 - x + chunk->x1 + (i - chunk_x) * SceneChunk::width,
+          dy = e->y - e->chunk->y1 - y + chunk->y1 + (n - chunk_y) * SceneChunk::height,
+          l = dx * dx + dy * dy;
         if (l < cl) {
           cl = l;
           ce = e;
@@ -101,13 +93,13 @@ void HCEntity::proc() {
     }
   }
   if (ce == nullptr)
-    nn.calculate({ 0, 0, angle });
+    nn.calculate({ 0.f, 0.f, angle });
   else
-    nn.calculate({ ce->x - x, ce->y - y, angle });
+    nn.calculate({ (ce->x - x) / SceneChunk::width, (ce->y - y) / SceneChunk::height, angle / static_cast<float>(TAU) });
 
   // Transforming output values
 
-  angle += (nn.nodes_o[2] * TAU - angle) * rotation_speed;
+  angle += (nn.nodes_o[2] * 2.f - 1.f) * rotation_speed;
   float ma = nn.nodes_o[0] * TAU, ms = nn.nodes_o[1],
     nx = x + cos(ma) * ms * speed,
     ny = y + sin(ma) * ms * speed;
@@ -115,13 +107,13 @@ void HCEntity::proc() {
   // Border collisions
 
   if (nx < EntityHandler::left)
-    nx = EntityHandler::left;
+    nx += EntityHandler::width;
   else if (nx > EntityHandler::right)
-    nx = EntityHandler::right;
+    nx -= EntityHandler::width;
   if (ny < EntityHandler::bottom)
-    ny = EntityHandler::bottom;
+    ny += EntityHandler::height;
   else if (ny > EntityHandler::top)
-    ny = EntityHandler::top;
+    ny -= EntityHandler::height;
   x = nx;
   y = ny;
   if (check_chunk_change(x, y)) {
@@ -130,9 +122,6 @@ void HCEntity::proc() {
   }
   update_mo();
 
-  if ((energy -= energy_usage) < min_energy)
-    return remove();
-
   // Cell stuff
 
   for (auto& [eid, cell] : cm.cells) {
@@ -140,7 +129,6 @@ void HCEntity::proc() {
       cell.is_alive = false;
       speed *= speed_modifier;
       rotation_speed *= speed_modifier;
-      max_energy -= energy_per_cell;
       --alive_cell_amount;
       if (destruction_check())
         return remove();
@@ -151,15 +139,16 @@ void HCEntity::proc() {
       cell.is_alive = true;
       speed /= speed_modifier;
       rotation_speed /= speed_modifier;
-      max_energy += energy_per_cell;
       ++alive_cell_amount;
       update_cell_alpha(cell, 1.f);
     }
 
     // Overheal is possible and it's feature ig
     if (cell.c_health < cell.health)
-      cell.c_health += cell.regeneration;
+      cell.c_health += cell.regeneration + hit_bonus ? 0.1f / cm.cells.size() : 0.f;
   }
+  if (hit_bonus)
+    hit_bonus = false;
 
   // Entity collisions
 
@@ -181,9 +170,9 @@ void HCEntity::proc() {
           cdx = dx + cell.x - ecell.x,
           cdy = dy + cell.y - ecell.y;
         if (cdx * cdx + cdy * cdy < cell_radius2) {
-          float attack = cell.damage - ecell.armor;
-          ecell.c_health -= attack;
-          energy += attack;
+          ecell.c_health -= cell.damage - ecell.armor;
+          hit_bonus = true;
+          ++offspring_counter;
           continue;
         }
       }
@@ -196,21 +185,21 @@ void umap_to_vec(std::vector<T*>& output, std::unordered_map<TA, T>& umap) {
     output.emplace_back(&value);
 }
 
+const float speed_multiplier = 4.f;
+
 void HCEntity::calculate_speed() {
   std::vector<ECell*> cells;
   umap_to_vec(cells, cm.cells);
-  std::sort(cells.begin(), cells.end(), [](const ECell* a, const ECell* b) {
-    return a->speed > b->speed;
-    });
-  float divider = 0.5f;
+  std::sort(cells.begin(), cells.end(), [](const ECell* a, const ECell* b)
+    { return a->speed > b->speed; });
+  float divider = 1.f / speed_multiplier;
   for (const ECell* c : cells)
-    speed += c->speed / (divider *= 2.f);
-  std::sort(cells.begin(), cells.end(), [](const ECell* a, const ECell* b) {
-    return a->rotation_speed > b->rotation_speed;
-    });
-  divider = 0.5f;
+    speed += c->speed / (divider *= speed_multiplier);
+  std::sort(cells.begin(), cells.end(), [](const ECell* a, const ECell* b)
+    { return a->rotation_speed > b->rotation_speed; });
+  divider = 1.f / speed_multiplier;
   for (const ECell* c : cells)
-    rotation_speed += c->rotation_speed / (divider *= 2.f);
+    rotation_speed += c->rotation_speed / (divider *= speed_multiplier);
 }
 
 void HCEntity::calculate_radius() {
@@ -226,15 +215,6 @@ void HCEntity::calculate_radius() {
     }
   }
   radius = sqrt(fc->x * fc->x + fc->y * fc->y) + cell_radius;
-}
-
-void HCEntity::calculate_energy() {
-  for (auto& [uid, cell] : cm.cells) {
-    cell.calculate_energy();
-    energy_usage += cell.energy_usage;
-  }
-  energy = max_energy = pow(cm.cells.size(), 1.5) * energy_per_cell;
-  min_energy = -max_energy / 2;
 }
 
 void HCEntity::remove() {
@@ -255,6 +235,6 @@ void HCEntity::update_cell_alpha(ECell& cell, float alpha) {
   glBindVertexArray(vo->VAO);
   glBindBuffer(GL_ARRAY_BUFFER, vo->VBO);
   for (int i = 0; i < 3; ++i)
-    tvo->vertexes[cell.vertex_index * 3 + i].color[3] = alpha;
+    tvo->vertexes[cell.vertex_index + i].color[3] = alpha;
   glBufferSubData(GL_ARRAY_BUFFER, cell.vertex_index * sizeof(Vertex), sizeof(Vertex) * 3, &tvo->vertexes[cell.vertex_index]);
 }

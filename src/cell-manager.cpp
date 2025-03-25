@@ -36,7 +36,7 @@ void CellManager::create_vo() {
     cell.x = tdx * x + (flip ? 0 : -tdx / 3);
     cell.y = tdy * y;
     mc.add_triangle(cell.x, cell.y, flip ? -cell_size : cell_size, (*this)(x, y).stats_to_color());
-    cell.vertex_index = i++;
+    cell.vertex_index = (i++) * 3;
   }
   vo = sm->add(mc);
 }

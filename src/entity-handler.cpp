@@ -23,6 +23,7 @@ void EntityHandler::new_entity(float x, float y) {
   ce->cm(0, 0).randomize_stats();
   ce->x = x;
   ce->y = y;
+  ce->invincibility_timer = 255;
   ce->init();
   ce->nn.set_node_amount(3, 4, 3);
   ce->nn.randomize_ratios();
@@ -117,4 +118,8 @@ void EntityHandler::proc() {
     e.get()->proc();
   for (int i = entities.size(); i < min_entities; ++i)
     new_entity(randf(left, right), randf(bottom, top));
+  if (++new_entity_counter > new_entity_timer) {
+    new_entity_counter = 0;
+    new_entity(randf(left, right), randf(bottom, top));
+  }
 }

@@ -67,13 +67,6 @@ void ECell::randomize_stats() {
   c_health = health;
 }
 
-void ECell::calculate_energy() {
-  for (int i = 0; i < 6; ++i) {
-    double e = ((*this)[i] - min[i]) / range[i];
-    energy_usage += e * e;
-  }
-}
-
 uint8_t CellData::offsets[] = {
   offsetof(CellData, regeneration) / sizeof(float), offsetof(CellData, health) / sizeof(float),
   offsetof(CellData, armor) / sizeof(float), offsetof(CellData, damage) / sizeof(float),
