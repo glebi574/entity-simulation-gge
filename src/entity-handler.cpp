@@ -24,7 +24,7 @@ void EntityHandler::new_entity(float x, float y) {
   ce->x = x;
   ce->y = y;
   ce->init();
-  ce->nn.set_node_amount(16, 16, 2);
+  ce->nn.set_node_amount(20, 20, 2);
   ce->nn.randomize_ratios();
   ce->group = randi(0, HCEntity::group_amount);
 }

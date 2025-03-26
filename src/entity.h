@@ -16,12 +16,14 @@ struct CellData {
   const float& operator[](uint8_t index) const;
 };
 
+const CellData min_b{0.6f, 4.f, 0.f, 4.f, 0.f, 0.f};
+
 class ECell : public CellData {
 public:
   inline static const CellData
-    min    { 2.f, 36.f, 0.f, 1.f, 0.f, 0.f },
-    max    { 14.0f, 180.f, 32.f, 26.f, 7.f, 1.f },
-    avg_max{ 6.f, 82.f, 6.f, 6.f, 4.f, 0.3f },
+    min    = min_b,
+    max    { min_b[0] * 7.f, min_b[1] * 12.f, 6.f, min_b[3] * 12.f, 7.f, 1.f },
+    avg_max{ min_b[0] * 3.f, min_b[1] * 3.f, 1.6f, min_b[3] * 3.f, 4.f, 0.4f},
     range{ max.regeneration - min.regeneration, max.health - min.health,
       max.armor - min.armor, max.damage - min.damage,
       max.speed - min.speed, max.rotation_speed - min.rotation_speed };

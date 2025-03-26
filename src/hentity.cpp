@@ -60,8 +60,12 @@ void HCEntity::update_mo() {
 /*
     Neural Network:
   Input:
-    closest_dx
-    closest_dy
+    dx1
+    dy1
+    ..
+    dx6
+    dy6
+
     angle
     health%
 
@@ -72,19 +76,28 @@ void HCEntity::update_mo() {
     speed
     rotation_speed
 
-    e_regeneration
-    e_health
-    e_armor
-    e_attack
-    e_speed
-    e_rotation_speed
-
   Output:
     movement speed
     angle
 */
 
-VObject* current_vo = nullptr;
+struct DistanceTool {
+  HCEntity* e = nullptr;
+  float dx = 0.f, dy = 0.f, lenght2 = FLT_MAX;
+
+  DistanceTool() { }
+
+  DistanceTool(HCEntity* e) {
+    this->e = e;
+  }
+
+  void calculate(HCEntity* _e) {
+    dx = _e->x - e->x + e->chunk->x1 - _e->chunk->x1 + (_e->chunk_x - e->chunk_x) * SceneChunk::width;
+    dy = _e->y - e->y + e->chunk->y1 - _e->chunk->y1 + (_e->chunk_y - e->chunk_y) * SceneChunk::height;
+    lenght2 = dx * dx + dy * dy;
+  }
+};
+
 void HCEntity::proc() {
   // Generating offspring
   if ((lifetime -= energy_usage) < 0.f)
@@ -97,53 +110,32 @@ void HCEntity::proc() {
   // Getting data for neural network
 
   // Closest entity
-  HCEntity* ce = nullptr;
-  float cl = FLT_MAX, dx = 0.f, dy = 0.f;
+  std::vector<DistanceTool> entities(6);
 
-  for (int i = chunk_x - 1; i < chunk_x + 2; ++i) {
-    for (int n = chunk_y - 1; n < chunk_y + 2; ++n) {
+  for (int i = chunk_x - 1; i <= chunk_x + 1; ++i) {
+    for (int n = chunk_y - 1; n <= chunk_y + 1; ++n) {
       int cx = (i + CHUNKS_X) % CHUNKS_X, cy = (n + CHUNKS_Y) % CHUNKS_Y;
-      float
-        offset_x = chunk->x1 - eh->chunks[cx][cy].x1 - x + (cx - chunk_x) * SceneChunk::width,
-        offset_y = chunk->y1 - eh->chunks[cx][cy].y1 - y + (cy - chunk_y) * SceneChunk::height;
       for (auto& [eid, e] : eh->chunks[cx][cy].entities) {
         if (e->group == group)
           continue;
-        float
-          cdx = e->x + offset_x,
-          cdy = e->y + offset_y;
-        float l = cdx * cdx + cdy * cdy;
-        if (l < cl) {
-          dx = cdx;
-          dy = cdy;
-          cl = l;
-          ce = e;
-        }
+        entities.emplace_back(DistanceTool(this));
+        entities.back().calculate(e);
       }
     }
   }
+  std::sort(entities.begin(), entities.end(), [](const DistanceTool& a, const DistanceTool& b) {return a.lenght2 < b.lenght2; });
   float p_health = static_cast<float>(alive_cell_amount) / static_cast<float>(cm.cells.size()),
     p_angle = angle / static_cast<float>(TAU);
-  if (ce == nullptr) {
-    std::vector<float> input(16, 0.f);
-    input[2] = p_angle;
-    input[3] = p_health;
-    for (int i = 4; i < 10; ++i)
-      input[i] = stats[i - 4];
-    nn.calculate(input);
+  std::vector<float> input(20, 0.f);
+  for (int i = 0; i < 6; ++i) {
+    input[i * 2] = entities[i].dx;
+    input[i * 2 + 1] = entities[i].dy;
   }
-  else {
-    std::vector<float> input(16);
-    input[0] = dx / SceneChunk::width;
-    input[1] = dy / SceneChunk::height;
-    input[2] = p_angle;
-    input[3] = p_health;
-    for (int i = 4; i < 10; ++i)
-      input[i] = stats[i - 4];
-    for (int i = 10; i < 16; ++i)
-      input[i] = ce->stats[i - 10];
-    nn.calculate(input);
-  }
+  input[12] = p_angle;
+  input[13] = p_health;
+  for (int i = 14; i < 20; ++i)
+    input[i] = stats[i - 14];
+  nn.calculate(input);
 
   // Transforming output values
 
@@ -194,26 +186,25 @@ void HCEntity::proc() {
 
   // Entity collisions
 
-  if (ce == nullptr)
+  if (entities[0].e == nullptr)
     return;
-  float r2 = radius + ce->radius;
-  if (cl > r2 * r2)
+  float r2 = radius + entities[0].e->radius;
+  if (entities[0].lenght2 > r2 * r2)
     return;
   // cell is attacking cell
   for (auto& [eid1, cell] : cm.cells)
     if (cell.is_alive)
       // ecell is attacked cell
-      for (auto& [eid2, ecell] : ce->cm.cells) {
+      for (auto& [eid2, ecell] : entities[0].e->cm.cells) {
         if (!ecell.is_alive)
           continue;
         float
-          cdx = dx + ecell.x - cell.x,
-          cdy = dy + ecell.y - cell.y;
+          cdx = entities[0].dx + ecell.x - cell.x,
+          cdy = entities[0].dy + ecell.y - cell.y;
         if (cdx * cdx + cdy * cdy < cell_radius2) {
           float attack = cell.damage - ecell.armor;
           ecell.c_health -= attack;
           lifetime += attack * (1.f - ecell.regeneration / ecell.max.regeneration);
-          ++offspring_counter;
           continue;
         }
       }
