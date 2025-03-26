@@ -1,7 +1,10 @@
 #include "entity.h"
 
 ECell::ECell() {
-
+  for (int i = 0; i < 6; ++i)
+    local_max[i] = avg_max[i];
+  int i = randi(0, 5);
+  local_max[i] = max[i];
 }
 
 float& CellData::operator[](uint8_t index) {
@@ -63,7 +66,7 @@ uint32_t ECell::stats_to_color() {
 
 void ECell::randomize_stats() {
   for (int i = 0; i < 6; ++i)
-    (*this)[i] = randf(min[i], avg_max[i]);
+    (*this)[i] = randf(min[i], local_max[i]);
   c_health = health;
 }
 

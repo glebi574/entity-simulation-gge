@@ -5,7 +5,7 @@
 
 struct CellData;
 
-static float cell_size = 12.f, cell_radius = cell_size / sqrt(3) * (4.f), cell_radius2 = cell_radius * cell_radius * 4;
+static float cell_size = 12.f, cell_radius = cell_size / sqrt(3) * (1.f), cell_radius2 = cell_radius * cell_radius * 4.f;
 
 struct CellData {
   float regeneration = 0.f, health = 0.f, armor = 0.f, damage = 0.f, speed = 0.f, rotation_speed = 0.f;
@@ -19,12 +19,13 @@ struct CellData {
 class ECell : public CellData {
 public:
   inline static const CellData
-    min    { 0.06f, 3.f, 0.f, 2.f, 0.f, 0.f },
-    max    { 2.f, 40.f, 1.f, 12.f, 10.f, 0.2f },
-    avg_max{ 0.6f, 7.f, 0.4f, 5.f, 3.f, 0.04f },
+    min    { 2.f, 36.f, 0.f, 1.f, 0.f, 0.f },
+    max    { 14.0f, 180.f, 32.f, 26.f, 7.f, 1.f },
+    avg_max{ 6.f, 82.f, 6.f, 6.f, 4.f, 0.3f },
     range{ max.regeneration - min.regeneration, max.health - min.health,
       max.armor - min.armor, max.damage - min.damage,
       max.speed - min.speed, max.rotation_speed - min.rotation_speed };
+  CellData local_max;
   bool is_alive = true;
   int vertex_index = 0;
   float x = 0.f, y = 0.f, c_health = 0.f;

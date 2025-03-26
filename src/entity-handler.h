@@ -23,16 +23,17 @@ struct SceneChunk {
 
 class HCEntity : public CEntity {
 public:
-  bool hit_bonus = false;
   int alive_cell_amount = 0, offspring_counter = 0;
-  float x = 0.f, y = 0.f, angle = 0.f, speed = 0.f, rotation_speed = 0.f, radius = 0.f;
-  uint8_t chunk_x = 0, chunk_y = 0, invincibility_timer = 52;
+  float x = 0.f, y = 0.f, angle = 0.f, radius = 0.f, lifetime = 0.f, max_lifetime = 0.f, energy_usage = 0.f;
+  uint8_t chunk_x = 0, chunk_y = 0;
+  int group = 0;
   SceneChunk* chunk = nullptr;
   EntityHandler* eh = nullptr;
+  CellData stats;
   NeuralNetwork nn;
 
-  inline static const int offspring_timer = 500;
-  inline static const float speed_modifier = 0.95f;
+  inline static const int offspring_timer = 300, group_amount = INT_MAX;
+  inline static const float lifetime_per_cell = 12.f, max_lifetime_per_cell = 36.f;
 
   HCEntity();
 
@@ -47,8 +48,6 @@ public:
 
   void proc();
 
-  void calculate_speed();
-
   void calculate_radius();
 
   void remove();
@@ -62,9 +61,9 @@ class EntityHandler {
 public:
   std::unordered_map<uint32_t, std::unique_ptr<HCEntity>> entities;
   SceneChunk chunks[CHUNKS_X][CHUNKS_Y];
-  int min_entities = 100, new_entity_counter = 0;
+  int new_entity_counter = 0;
   
-  inline static const int new_entity_timer = 60;
+  inline static const int new_entity_timer = 0, initial_entities = 1000, min_entities = 100;
   static const int left = UIHandler::left, right = UIHandler::right, bottom = UIHandler::bottom, top = UIHandler::top,
     width = right - left, height = top - bottom;
 

@@ -1,8 +1,8 @@
 #include "entity-handler.h"
 
 void get_chunk_indexes(float x, float y, int& ix, int& iy) {
-  ix = (static_cast<int>(x) - PANEL1_LEFT) / SceneChunk::width;
-  iy = (static_cast<int>(y) - PANEL1_BOTTOM) / SceneChunk::height;
+  ix = (static_cast<int>(x) - EntityHandler::left) / SceneChunk::width;
+  iy = (static_cast<int>(y) - EntityHandler::bottom) / SceneChunk::height;
   if (ix == CHUNKS_X)
     --ix;
   if (iy == CHUNKS_Y)
@@ -23,22 +23,23 @@ void EntityHandler::new_entity(float x, float y) {
   ce->cm(0, 0).randomize_stats();
   ce->x = x;
   ce->y = y;
-  ce->invincibility_timer = 255;
   ce->init();
-  ce->nn.set_node_amount(3, 4, 3);
+  ce->nn.set_node_amount(16, 16, 2);
   ce->nn.randomize_ratios();
+  ce->group = randi(0, HCEntity::group_amount);
 }
 
 void mutate_nn_values(std::vector<float>& vec) {
   for (float& v : vec)
-    if (randf() <= 0.05f)
-      v *= randf(0.8f, 1.2f);
+    if (randf() <= 0.1f)
+      v *= randf(-2.f, 2.f);
 }
 
 void EntityHandler::new_entity(float x, float y, HCEntity& e, float mutation_chance, bool keep_c_stats) {
   std::unique_ptr<HCEntity> new_e = std::make_unique<HCEntity>(this);
   HCEntity* ce = new_e.get();
   entities[ce->id] = std::move(new_e);
+  ce->group = e.group;
   ce->cm.cells = e.cm.cells;
   ce->nn = e.nn;
   if (!keep_c_stats)
@@ -52,19 +53,17 @@ void EntityHandler::new_entity(float x, float y, HCEntity& e, float mutation_cha
     for (auto& [id, cell] : ce->cm.cells) {
       for (int i = 0; i < 6; ++i)
         if (randf() <= 0.1f) {
-          cell[i] *= randf(0.8f, 1.2f);
+          cell[i] *= randf(0.7f, 1.3f);
           if (cell[i] < cell.min[i])
             cell[i] = cell.min[i];
-          if (cell[i] > cell.max[i])
-            cell[i] = cell.max[i];
+          if (cell[i] > cell.local_max[i])
+            cell[i] = cell.local_max[i];
         }
     }
 
     // Neural network mutation
     mutate_nn_values(ce->nn.biases_h);
     mutate_nn_values(ce->nn.biases_o);
-    mutate_nn_values(ce->nn.nodes_h);
-    mutate_nn_values(ce->nn.nodes_o);
     mutate_nn_values(ce->nn.weights_i);
     mutate_nn_values(ce->nn.weights_o);
 
@@ -81,7 +80,7 @@ void EntityHandler::new_entity(float x, float y, HCEntity& e, float mutation_cha
           }
     }
     std::vector<uint16_t> positions(free_space.begin(), free_space.end());
-    while (positions.size() > 0 && randf() <= 0.2f) {
+    while (positions.size() > 0 && randf() <= 0.1f) {
       int index = randi(positions.size());
       ECell* c = ce->cm.add(positions[index]);
       c->randomize_stats();
@@ -108,7 +107,7 @@ void EntityHandler::add_entity_to_chunks(HCEntity* e) {
 }
 
 void EntityHandler::initial_spawn() {
-  for (int i = 0; i < min_entities; ++i) {
+  for (int i = 0; i < initial_entities; ++i) {
     new_entity(randf(left, right), randf(bottom, top));
   }
 }

@@ -1,22 +1,9 @@
 #include "entity-handler.h"
 
-/*
-    Neural Network:
-  Input:
-    closest_dx
-    closest_dy
-    angle
-
-  Output:
-    movement angle
-    movement speed
-    angle
-*/
-
 bool HCEntity::check_chunk_change(float& x, float& y) const {
   return
-    static_cast<int>(x) / SceneChunk::width == chunk_x &&
-    static_cast<int>(y) / SceneChunk::width == chunk_y;
+    static_cast<uint8_t>(x) / SceneChunk::width != chunk_x ||
+    static_cast<uint8_t>(y) / SceneChunk::height != chunk_y;
 }
 
 HCEntity::HCEntity() {
@@ -31,9 +18,17 @@ void HCEntity::init() {
   eh->add_entity_to_chunks(this);
   cm.create_vo();
   update_mo();
-  calculate_speed();
   calculate_radius();
   alive_cell_amount = cm.cells.size();
+  offspring_counter = randi(-96, -32);
+  lifetime = lifetime_per_cell * cm.cells.size();
+  max_lifetime = max_lifetime_per_cell * cm.cells.size();
+  energy_usage = static_cast<float>(0.1 * sqrt(cm.cells.size()));
+  for (auto& [uid, cell] : cm.cells)
+    for (int i = 0; i < 6; ++i)
+      stats[i] += cell[i];
+  stats.speed /= cm.cells.size();
+  stats.rotation_speed /= cm.cells.size();
 }
 
 void HCEntity::update_mo() {
@@ -62,47 +57,100 @@ void HCEntity::update_mo() {
   
 */
 
+/*
+    Neural Network:
+  Input:
+    closest_dx
+    closest_dy
+    angle
+    health%
+
+    regeneration
+    health
+    armor
+    attack
+    speed
+    rotation_speed
+
+    e_regeneration
+    e_health
+    e_armor
+    e_attack
+    e_speed
+    e_rotation_speed
+
+  Output:
+    movement speed
+    angle
+*/
+
+VObject* current_vo = nullptr;
 void HCEntity::proc() {
   // Generating offspring
+  if ((lifetime -= energy_usage) < 0.f)
+    return remove();
   ++offspring_counter;
   if (offspring_counter > offspring_timer) {
-    if (randb())
-      eh->new_entity(x, y, *this, 1.f);
+    eh->new_entity(x, y, *this, 1.f);
     offspring_counter = 0;
   }
   // Getting data for neural network
 
   // Closest entity
   HCEntity* ce = nullptr;
-  float cl = 0xffffffff;
+  float cl = FLT_MAX, dx = 0.f, dy = 0.f;
 
   for (int i = chunk_x - 1; i < chunk_x + 2; ++i) {
     for (int n = chunk_y - 1; n < chunk_y + 2; ++n) {
-      for (auto& [eid, e] : eh->chunks[(i + CHUNKS_X) % CHUNKS_X][(n + CHUNKS_Y) % CHUNKS_Y].entities) {
-        if (eid == id)
+      int cx = (i + CHUNKS_X) % CHUNKS_X, cy = (n + CHUNKS_Y) % CHUNKS_Y;
+      float
+        offset_x = chunk->x1 - eh->chunks[cx][cy].x1 - x + (cx - chunk_x) * SceneChunk::width,
+        offset_y = chunk->y1 - eh->chunks[cx][cy].y1 - y + (cy - chunk_y) * SceneChunk::height;
+      for (auto& [eid, e] : eh->chunks[cx][cy].entities) {
+        if (e->group == group)
           continue;
         float
-          dx = e->x - e->chunk->x1 - x + chunk->x1 + (i - chunk_x) * SceneChunk::width,
-          dy = e->y - e->chunk->y1 - y + chunk->y1 + (n - chunk_y) * SceneChunk::height,
-          l = dx * dx + dy * dy;
+          cdx = e->x + offset_x,
+          cdy = e->y + offset_y;
+        float l = cdx * cdx + cdy * cdy;
         if (l < cl) {
+          dx = cdx;
+          dy = cdy;
           cl = l;
           ce = e;
         }
       }
     }
   }
-  if (ce == nullptr)
-    nn.calculate({ 0.f, 0.f, angle });
-  else
-    nn.calculate({ (ce->x - x) / SceneChunk::width, (ce->y - y) / SceneChunk::height, angle / static_cast<float>(TAU) });
+  float p_health = static_cast<float>(alive_cell_amount) / static_cast<float>(cm.cells.size()),
+    p_angle = angle / static_cast<float>(TAU);
+  if (ce == nullptr) {
+    std::vector<float> input(16, 0.f);
+    input[2] = p_angle;
+    input[3] = p_health;
+    for (int i = 4; i < 10; ++i)
+      input[i] = stats[i - 4];
+    nn.calculate(input);
+  }
+  else {
+    std::vector<float> input(16);
+    input[0] = dx / SceneChunk::width;
+    input[1] = dy / SceneChunk::height;
+    input[2] = p_angle;
+    input[3] = p_health;
+    for (int i = 4; i < 10; ++i)
+      input[i] = stats[i - 4];
+    for (int i = 10; i < 16; ++i)
+      input[i] = ce->stats[i - 10];
+    nn.calculate(input);
+  }
 
   // Transforming output values
 
-  angle += (nn.nodes_o[2] * 2.f - 1.f) * rotation_speed;
-  float ma = nn.nodes_o[0] * TAU, ms = nn.nodes_o[1],
-    nx = x + cos(ma) * ms * speed,
-    ny = y + sin(ma) * ms * speed;
+  angle += nn.nodes_o[1] * stats.rotation_speed;
+  float ms = nn.nodes_o[0] * stats.speed,
+    nx = x + cos(angle) * ms,
+    ny = y + sin(angle) * ms;
 
   // Border collisions
 
@@ -127,8 +175,6 @@ void HCEntity::proc() {
   for (auto& [eid, cell] : cm.cells) {
     if (cell.is_alive && cell.c_health < 0.f) {
       cell.is_alive = false;
-      speed *= speed_modifier;
-      rotation_speed *= speed_modifier;
       --alive_cell_amount;
       if (destruction_check())
         return remove();
@@ -137,27 +183,21 @@ void HCEntity::proc() {
 
     if (!cell.is_alive && cell.c_health >= cell.health) {
       cell.is_alive = true;
-      speed /= speed_modifier;
-      rotation_speed /= speed_modifier;
       ++alive_cell_amount;
       update_cell_alpha(cell, 1.f);
     }
 
     // Overheal is possible and it's feature ig
     if (cell.c_health < cell.health)
-      cell.c_health += cell.regeneration + hit_bonus ? 0.1f / cm.cells.size() : 0.f;
+      cell.c_health += cell.regeneration;
   }
-  if (hit_bonus)
-    hit_bonus = false;
 
   // Entity collisions
 
-  if (invincibility_timer)
-    --invincibility_timer;
-  if (invincibility_timer || ce == nullptr || ce->invincibility_timer)
+  if (ce == nullptr)
     return;
-  float dx = x - ce->x, dy = y - ce->y, r2 = radius + ce->radius;
-  if (dx * dx + dy * dy > r2 * r2)
+  float r2 = radius + ce->radius;
+  if (cl > r2 * r2)
     return;
   // cell is attacking cell
   for (auto& [eid1, cell] : cm.cells)
@@ -167,15 +207,18 @@ void HCEntity::proc() {
         if (!ecell.is_alive)
           continue;
         float
-          cdx = dx + cell.x - ecell.x,
-          cdy = dy + cell.y - ecell.y;
+          cdx = dx + ecell.x - cell.x,
+          cdy = dy + ecell.y - cell.y;
         if (cdx * cdx + cdy * cdy < cell_radius2) {
-          ecell.c_health -= cell.damage - ecell.armor;
-          hit_bonus = true;
+          float attack = cell.damage - ecell.armor;
+          ecell.c_health -= attack;
+          lifetime += attack * (1.f - ecell.regeneration / ecell.max.regeneration);
           ++offspring_counter;
           continue;
         }
       }
+  if (lifetime > max_lifetime)
+    lifetime = max_lifetime;
 }
 
 template <typename T, typename TA>
@@ -183,23 +226,6 @@ void umap_to_vec(std::vector<T*>& output, std::unordered_map<TA, T>& umap) {
   output.reserve(umap.size());
   for (auto& [key, value] : umap)
     output.emplace_back(&value);
-}
-
-const float speed_multiplier = 4.f;
-
-void HCEntity::calculate_speed() {
-  std::vector<ECell*> cells;
-  umap_to_vec(cells, cm.cells);
-  std::sort(cells.begin(), cells.end(), [](const ECell* a, const ECell* b)
-    { return a->speed > b->speed; });
-  float divider = 1.f / speed_multiplier;
-  for (const ECell* c : cells)
-    speed += c->speed / (divider *= speed_multiplier);
-  std::sort(cells.begin(), cells.end(), [](const ECell* a, const ECell* b)
-    { return a->rotation_speed > b->rotation_speed; });
-  divider = 1.f / speed_multiplier;
-  for (const ECell* c : cells)
-    rotation_speed += c->rotation_speed / (divider *= speed_multiplier);
 }
 
 void HCEntity::calculate_radius() {

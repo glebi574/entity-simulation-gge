@@ -22,19 +22,21 @@ void NeuralNetwork::set_node_amount(uint8_t input, uint8_t hidden, uint8_t outpu
   weights_o.resize(weight_amount_o);
 }
 
-void NeuralNetwork::randomize_ratios() {
-  for (float& v : biases_h)
-    v = randfr();
-  for (float& v : biases_o)
-    v = randfr();
-  for (float& v : weights_i)
-    v = randfr();
-  for (float& v : weights_o)
+void randomize_n_ratios(std::vector<float>& vec) {
+  for (float& v : vec)
     v = randfr();
 }
 
+void NeuralNetwork::randomize_ratios() {
+  randomize_n_ratios(biases_h);
+  randomize_n_ratios(biases_o);
+  randomize_n_ratios(weights_i);
+  randomize_n_ratios(weights_o);
+}
+
+// (-1; 1)
 void activation_function(float& x) {
-  x = 1.f / (1.f + exp(-x));
+  x = 1.f - 2.f / (1.f + exp(x));
 }
 
 void NeuralNetwork::calculate(const std::vector<float>& input) {
