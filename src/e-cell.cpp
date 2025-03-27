@@ -1,9 +1,7 @@
 #include "entity.h"
 
 ECell::ECell() {
-  for (int i = 0; i < 6; ++i)
-    local_max[i] = avg_max[i];
-  int i = randi(0, 5);
+  int i = randi(3);
   local_max[i] = max[i];
 }
 
@@ -55,23 +53,25 @@ alternative color schemes:
 
 uint32_t ECell::stats_to_color() {
   return rgba_to_color(
-    ((regeneration - min.regeneration) / range.regeneration +
-      (health - min.health) / range.health +
-      (armor - min.armor) / range.armor) / 3 * 192 + 63,
-    ((speed - min.speed) / range.speed +
-      (rotation_speed - min.rotation_speed) / range.rotation_speed) / 2 * 192 + 63,
+    (health - min.health) / range.health * 192 + 63,
+    (speed - min.speed) / range.speed * 192 + 63,
     (damage - min.damage) / range.damage * 192 + 63,
     255);
 }
 
 void ECell::randomize_stats() {
-  for (int i = 0; i < 6; ++i)
-    (*this)[i] = randf(min[i], local_max[i]);
+  for (int i = 0; i < 3; ++i)
+    (*this)[i] = randf(min[i], avg_max[i]);
   c_health = health;
+  update_regeneration();
+}
+
+void ECell::update_regeneration() {
+  regeneration = health / 30.f;
 }
 
 uint8_t CellData::offsets[] = {
-  offsetof(CellData, regeneration) / sizeof(float), offsetof(CellData, health) / sizeof(float),
-  offsetof(CellData, armor) / sizeof(float), offsetof(CellData, damage) / sizeof(float),
-  offsetof(CellData, speed) / sizeof(float), offsetof(CellData, rotation_speed) / sizeof(float)
+  offsetof(CellData, health) / sizeof(float),
+  offsetof(CellData, damage) / sizeof(float),
+  offsetof(CellData, speed) / sizeof(float)
 };

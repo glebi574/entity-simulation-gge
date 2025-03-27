@@ -24,22 +24,20 @@ void EntityHandler::new_entity(float x, float y) {
   ce->x = x;
   ce->y = y;
   ce->init();
-  ce->nn.set_node_amount(20, 20, 2);
+  ce->nn.set_node_amount(14, 15, 3);
   ce->nn.randomize_ratios();
-  ce->group = randi(0, HCEntity::group_amount);
 }
 
 void mutate_nn_values(std::vector<float>& vec) {
   for (float& v : vec)
-    if (randf() <= 0.1f)
-      v *= randf(-2.f, 2.f);
+    if (randf() <= 0.2f)
+      v *= randf(0.8f, 2.f);
 }
 
 void EntityHandler::new_entity(float x, float y, HCEntity& e, float mutation_chance, bool keep_c_stats) {
   std::unique_ptr<HCEntity> new_e = std::make_unique<HCEntity>(this);
   HCEntity* ce = new_e.get();
   entities[ce->id] = std::move(new_e);
-  ce->group = e.group;
   ce->cm.cells = e.cm.cells;
   ce->nn = e.nn;
   if (!keep_c_stats)
@@ -51,13 +49,14 @@ void EntityHandler::new_entity(float x, float y, HCEntity& e, float mutation_cha
   if (mutation_chance != 0.f && (mutation_chance == 1.f || randf() <= mutation_chance)) {
     // Cell mutation
     for (auto& [id, cell] : ce->cm.cells) {
-      for (int i = 0; i < 6; ++i)
-        if (randf() <= 0.1f) {
+      for (int i = 0; i < 3; ++i)
+        if (randf() <= 0.2f) {
           cell[i] *= randf(0.7f, 1.3f);
           if (cell[i] < cell.min[i])
             cell[i] = cell.min[i];
           if (cell[i] > cell.local_max[i])
             cell[i] = cell.local_max[i];
+          cell.update_regeneration();
         }
     }
 
@@ -80,7 +79,7 @@ void EntityHandler::new_entity(float x, float y, HCEntity& e, float mutation_cha
           }
     }
     std::vector<uint16_t> positions(free_space.begin(), free_space.end());
-    while (positions.size() > 0 && randf() <= 0.1f) {
+    while (positions.size() > 0 && randf() <= 0.3f) {
       int index = randi(positions.size());
       ECell* c = ce->cm.add(positions[index]);
       c->randomize_stats();
@@ -88,8 +87,8 @@ void EntityHandler::new_entity(float x, float y, HCEntity& e, float mutation_cha
     }
   }
 
-  ce->x = x;
-  ce->y = y;
+  ce->x = randf(EntityHandler::left, EntityHandler::right);
+  ce->y = randf(EntityHandler::bottom, EntityHandler::top);
   ce->init();
 }
 

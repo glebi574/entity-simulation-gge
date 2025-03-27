@@ -23,17 +23,14 @@ struct SceneChunk {
 
 class HCEntity : public CEntity {
 public:
-  int alive_cell_amount = 0, offspring_counter = 0;
-  float x = 0.f, y = 0.f, angle = 0.f, radius = 0.f, lifetime = 0.f, max_lifetime = 0.f, energy_usage = 0.f;
+  int alive_cell_amount = 0;
+  float x = 0.f, y = 0.f, angle = 0.f, radius = 0.f, speed = 0.f, rotation_speed = 0.f, offspring_iterator = 0.f, offspring_counter = 0.f;
   uint8_t chunk_x = 0, chunk_y = 0;
-  int group = 0;
   SceneChunk* chunk = nullptr;
   EntityHandler* eh = nullptr;
-  CellData stats;
   NeuralNetwork nn;
 
-  inline static const int offspring_timer = 300, group_amount = INT_MAX;
-  inline static const float lifetime_per_cell = 12.f, max_lifetime_per_cell = 36.f;
+  inline static const float offspring_timer = 1200.f;
 
   HCEntity();
 
@@ -52,8 +49,6 @@ public:
 
   void remove();
 
-  bool destruction_check();
-
   void update_cell_alpha(ECell& cell, float alpha);
 };
 
@@ -61,7 +56,7 @@ class EntityHandler {
 public:
   std::unordered_map<uint32_t, std::unique_ptr<HCEntity>> entities;
   SceneChunk chunks[CHUNKS_X][CHUNKS_Y];
-  int new_entity_counter = 0;
+  int new_entity_counter = 9;
   
   inline static const int new_entity_timer = 0, initial_entities = 1000, min_entities = 100;
   static const int left = UIHandler::left, right = UIHandler::right, bottom = UIHandler::bottom, top = UIHandler::top,

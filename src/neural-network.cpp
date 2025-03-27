@@ -36,7 +36,7 @@ void NeuralNetwork::randomize_ratios() {
 
 // (-1; 1)
 void activation_function(float& x) {
-  x = 1.f - 2.f / (1.f + exp(x));
+  x = tanh(x);
 }
 
 void NeuralNetwork::calculate(const std::vector<float>& input) {

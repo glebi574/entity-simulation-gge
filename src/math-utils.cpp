@@ -9,12 +9,12 @@ int randi(int h) {
 }
 
 int randi(int l, int h) {
-  return l + rand() % (h - l);
+  return l + rand() % (h - l + 1);
 }
 
-float
+const float
   __c_frand = static_cast<float>(RAND_MAX),
-  __c_frandr = __c_frand / 2;
+  __c_frandr = __c_frand / 2.f;
 
 float randf() {
   return static_cast<float>(rand()) / __c_frand;

@@ -20,15 +20,15 @@ void HCEntity::init() {
   update_mo();
   calculate_radius();
   alive_cell_amount = cm.cells.size();
-  offspring_counter = randi(-96, -32);
-  lifetime = lifetime_per_cell * cm.cells.size();
-  max_lifetime = max_lifetime_per_cell * cm.cells.size();
-  energy_usage = static_cast<float>(0.1 * sqrt(cm.cells.size()));
-  for (auto& [uid, cell] : cm.cells)
-    for (int i = 0; i < 6; ++i)
-      stats[i] += cell[i];
-  stats.speed /= cm.cells.size();
-  stats.rotation_speed /= cm.cells.size();
+  float health = 0.f;
+  for (auto& [uid, cell] : cm.cells) {
+    speed += cell.speed;
+    health += cell.health;
+  }
+  offspring_iterator = ECell::max.health * cm.cells.size() / health;
+  speed /= cm.cells.size();
+  rotation_speed = speed / 60.f;
+  offspring_counter = randi(-52, -16);
 }
 
 void HCEntity::update_mo() {
@@ -69,15 +69,9 @@ void HCEntity::update_mo() {
     angle
     health%
 
-    regeneration
-    health
-    armor
-    attack
-    speed
-    rotation_speed
-
   Output:
     movement speed
+    movement angle
     angle
 */
 
@@ -99,50 +93,65 @@ struct DistanceTool {
 };
 
 void HCEntity::proc() {
+  // Cell stuff
+
+  for (auto& [eid, cell] : cm.cells) {
+    if (cell.is_alive && cell.c_health < 0.f) {
+      if (--alive_cell_amount == 0)
+        return remove();
+      cell.is_alive = false;
+      update_cell_alpha(cell, 0.2f);
+    }
+
+    if (!cell.is_alive && cell.c_health >= cell.health) {
+      cell.is_alive = true;
+      ++alive_cell_amount;
+      update_cell_alpha(cell, 1.f);
+    }
+
+    // Overheal is possible and it's feature ig
+    if (cell.c_health < cell.health)
+      cell.c_health += cell.regeneration;
+  }
+
   // Generating offspring
-  if ((lifetime -= energy_usage) < 0.f)
-    return remove();
-  ++offspring_counter;
-  if (offspring_counter > offspring_timer) {
+  if ((offspring_counter += offspring_iterator) > offspring_timer) {
     eh->new_entity(x, y, *this, 1.f);
     offspring_counter = 0;
   }
+
   // Getting data for neural network
 
-  // Closest entity
-  std::vector<DistanceTool> entities(6);
+  // Closest entities
+  std::vector<DistanceTool> entities;
 
   for (int i = chunk_x - 1; i <= chunk_x + 1; ++i) {
     for (int n = chunk_y - 1; n <= chunk_y + 1; ++n) {
       int cx = (i + CHUNKS_X) % CHUNKS_X, cy = (n + CHUNKS_Y) % CHUNKS_Y;
       for (auto& [eid, e] : eh->chunks[cx][cy].entities) {
-        if (e->group == group)
+        if (id == eid)
           continue;
-        entities.emplace_back(DistanceTool(this));
-        entities.back().calculate(e);
+        entities.emplace_back(DistanceTool(e));
+        entities.back().calculate(this);
       }
     }
   }
   std::sort(entities.begin(), entities.end(), [](const DistanceTool& a, const DistanceTool& b) {return a.lenght2 < b.lenght2; });
-  float p_health = static_cast<float>(alive_cell_amount) / static_cast<float>(cm.cells.size()),
-    p_angle = angle / static_cast<float>(TAU);
-  std::vector<float> input(20, 0.f);
-  for (int i = 0; i < 6; ++i) {
+  std::vector<float> input(14, 0.f);
+  for (int i = 0; i < std::min<size_t>(6, entities.size()); ++i) {
     input[i * 2] = entities[i].dx;
     input[i * 2 + 1] = entities[i].dy;
   }
-  input[12] = p_angle;
-  input[13] = p_health;
-  for (int i = 14; i < 20; ++i)
-    input[i] = stats[i - 14];
+  input[12] = angle / static_cast<float>(TAU);
+  input[13] = static_cast<float>(alive_cell_amount) / static_cast<float>(cm.cells.size());
   nn.calculate(input);
 
   // Transforming output values
 
-  angle += nn.nodes_o[1] * stats.rotation_speed;
-  float ms = nn.nodes_o[0] * stats.speed,
-    nx = x + cos(angle) * ms,
-    ny = y + sin(angle) * ms;
+  angle += nn.nodes_o[2] * rotation_speed;
+  float ms = nn.nodes_o[0] * speed, ma = nn.nodes_o[1] * PI,
+    nx = x + cos(ma) * ms,
+    ny = y + sin(ma) * ms;
 
   // Border collisions
 
@@ -162,54 +171,29 @@ void HCEntity::proc() {
   }
   update_mo();
 
-  // Cell stuff
-
-  for (auto& [eid, cell] : cm.cells) {
-    if (cell.is_alive && cell.c_health < 0.f) {
-      cell.is_alive = false;
-      --alive_cell_amount;
-      if (destruction_check())
-        return remove();
-      update_cell_alpha(cell, 0.2f);
-    }
-
-    if (!cell.is_alive && cell.c_health >= cell.health) {
-      cell.is_alive = true;
-      ++alive_cell_amount;
-      update_cell_alpha(cell, 1.f);
-    }
-
-    // Overheal is possible and it's feature ig
-    if (cell.c_health < cell.health)
-      cell.c_health += cell.regeneration;
-  }
-
   // Entity collisions
 
-  if (entities[0].e == nullptr)
+  DistanceTool& ce = entities[0];
+  if (ce.e == nullptr)
     return;
-  float r2 = radius + entities[0].e->radius;
-  if (entities[0].lenght2 > r2 * r2)
+  float r2 = radius + ce.e->radius;
+  if (ce.lenght2 > r2 * r2)
     return;
   // cell is attacking cell
   for (auto& [eid1, cell] : cm.cells)
     if (cell.is_alive)
       // ecell is attacked cell
-      for (auto& [eid2, ecell] : entities[0].e->cm.cells) {
+      for (auto& [eid2, ecell] : ce.e->cm.cells) {
         if (!ecell.is_alive)
           continue;
         float
-          cdx = entities[0].dx + ecell.x - cell.x,
-          cdy = entities[0].dy + ecell.y - cell.y;
+          cdx = ce.dx - ecell.x * cos(ce.e->angle) + cell.x * cos(angle),
+          cdy = ce.dy - ecell.y * sin(ce.e->angle) + cell.y * sin(angle);
         if (cdx * cdx + cdy * cdy < cell_radius2) {
-          float attack = cell.damage - ecell.armor;
-          ecell.c_health -= attack;
-          lifetime += attack * (1.f - ecell.regeneration / ecell.max.regeneration);
+          ecell.c_health -= cell.damage;
           continue;
         }
       }
-  if (lifetime > max_lifetime)
-    lifetime = max_lifetime;
 }
 
 template <typename T, typename TA>
@@ -238,12 +222,6 @@ void HCEntity::remove() {
   CellManager::sm->remove(cm.vo);
   eh->remove_chunk_link(this);
   eh->entities.erase(id);
-}
-
-bool HCEntity::destruction_check() {
-  if (alive_cell_amount == 0)
-    return true;
-  return false;
 }
 
 void HCEntity::update_cell_alpha(ECell& cell, float alpha) {
