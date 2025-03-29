@@ -92,13 +92,15 @@ struct DistanceTool {
   }
 };
 
-void HCEntity::proc() {
+bool HCEntity::proc() {
   // Cell stuff
 
   for (auto& [eid, cell] : cm.cells) {
     if (cell.is_alive && cell.c_health < 0.f) {
-      if (--alive_cell_amount == 0)
-        return remove();
+      if (--alive_cell_amount == 0) {
+        remove();
+        return true;
+      }
       cell.is_alive = false;
       update_cell_alpha(cell, 0.2f);
     }
@@ -175,10 +177,10 @@ void HCEntity::proc() {
 
   DistanceTool& ce = entities[0];
   if (ce.e == nullptr)
-    return;
+    return false;
   float r2 = radius + ce.e->radius;
   if (ce.lenght2 > r2 * r2)
-    return;
+    return false;
   // cell is attacking cell
   for (auto& [eid1, cell] : cm.cells)
     if (cell.is_alive)
@@ -194,6 +196,7 @@ void HCEntity::proc() {
           continue;
         }
       }
+  return false;
 }
 
 template <typename T, typename TA>
@@ -221,7 +224,6 @@ void HCEntity::calculate_radius() {
 void HCEntity::remove() {
   CellManager::sm->remove(cm.vo);
   eh->remove_chunk_link(this);
-  eh->entities.erase(id);
 }
 
 void HCEntity::update_cell_alpha(ECell& cell, float alpha) {

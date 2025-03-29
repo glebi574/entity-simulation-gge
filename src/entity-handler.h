@@ -43,7 +43,7 @@ public:
 
   bool check_chunk_change(float& x, float& y) const;
 
-  void proc();
+  bool proc();
 
   void calculate_radius();
 

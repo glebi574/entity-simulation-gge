@@ -112,8 +112,7 @@ void EntityHandler::initial_spawn() {
 }
 
 void EntityHandler::proc() {
-  for (auto& [id, e] : entities)
-    e.get()->proc();
+  std::erase_if(entities, [](auto& pair) {return pair.second->proc(); });
   for (int i = entities.size(); i < min_entities; ++i)
     new_entity(randf(left, right), randf(bottom, top));
   if (++new_entity_counter > new_entity_timer) {
